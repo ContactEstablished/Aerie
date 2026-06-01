@@ -295,6 +295,11 @@
   .field:focus{border-color:var(--accent)}
   input.field{flex:1;min-width:120px}
   select.field{cursor:pointer}
+  /* Native <select> dropdowns: the controls use a translucent background, which Chrome
+     composites to white when it paints the option popup — making light text unreadable.
+     color-scheme:dark renders the popup dark; explicit option colors keep it on-theme. */
+  select{color-scheme:dark}
+  option{background:var(--card-solid);color:var(--text)}
   .feedrow{display:flex;gap:6px;margin-bottom:6px;align-items:center}
   .feedrow .t{width:34%}
   .feedrow .u{flex:1}
