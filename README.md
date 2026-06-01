@@ -116,7 +116,7 @@ Results are **cached per feed for 30 minutes** (configurable), and the cache key
 
 ### Clock & Search
 - **Clock** widget: large time, full date, and a time‑of‑day greeting.
-- **Search** widget (optional): a Google search bar.
+- **Search** widget (optional): a search bar with a built‑in **engine selector** — Google, Bing, or Yahoo — plus a **custom search‑URL** option (e.g. Dogpile) set from the card's **⚙**. Fits cleanly in a single‑row card.
 - Both can be toggled on/off in Settings.
 
 ### The Grid
@@ -269,7 +269,7 @@ All free and key‑less, **except the AI providers** (optional, your key):
 | AI summaries | [DeepSeek](https://platform.deepseek.com/) · [OpenAI](https://platform.openai.com/) · [Anthropic](https://console.anthropic.com/) | **Yes (optional)** |
 | Photo of the Day | [Fstoppers POTD](https://fstoppers.com/potd) | No |
 | Artwork | [Art Institute of Chicago](https://api.artic.edu/docs/) · [The Met](https://metmuseum.github.io/) | No |
-| Search | Google | No |
+| Search | Google · Bing · Yahoo · custom URL | No |
 
 > **rss2json note:** The free tier returns up to ~10 items per feed and does **not** support the `count` parameter (that needs a paid key). Aerie intentionally omits `count` so the free tier works; if a feed needs more items or rss2json can't read it, Aerie falls back to the CORS proxy.
 
@@ -281,7 +281,7 @@ Aerie stores everything client‑side. Keys used in `localStorage`:
 
 | Key | Contents | Refresh policy |
 | --- | --- | --- |
-| `myhome.v1` | Main state: layout, widgets, feeds (incl. per‑feed AI provider/model), units, theme, AI settings (incl. provider API keys), proxy. Versioned via `__v` (currently **6**). | On every change |
+| `myhome.v1` | Main state: layout, widgets, feeds (incl. per‑feed AI provider/model), units, theme, AI settings (incl. provider API keys), proxy. Versioned via `__v` (currently **8**). | On every change |
 | `myhome.feeds` | Built AI "For You" results per feed. | Older than the AI **cache minutes** (default 30) |
 | `myhome.wx` | Last successful weather reading + resolved location. | On each successful fetch |
 | `myhome.potd` | The day's photo (per source). | New local day, or manual ⟳ |

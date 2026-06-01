@@ -205,12 +205,32 @@
   .clock-cfg .cc-zone{flex:1;min-width:0;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 8px;font-size:12.5px;outline:none}
 
   /* ---------- Search ---------- */
-  .search form{display:flex;gap:8px;height:100%;align-items:center}
-  .search input{
-    flex:1;background:rgba(0,0,0,0.25);border:1px solid var(--border);
-    color:var(--text);border-radius:11px;padding:11px 14px;font-size:15px;outline:none;
+  /* the input/select FILL the card height (no fixed height of their own), so the
+     card fits cleanly in a 1-row-tall slot without ever showing a scrollbar */
+  .w-body.search-body{padding:6px 10px;overflow:hidden}
+  .search{height:100%;display:flex;align-items:center}
+  .search form{display:flex;gap:8px;width:100%;height:100%;align-items:center}
+  /* no min-height: the controls FILL the row's height (capped at 46px) so they never
+     clip in a short 1-row card and never grow huge in a tall one */
+  .search select.engine{
+    flex:0 0 auto;max-width:118px;height:100%;max-height:46px;
+    background:rgba(0,0,0,0.25);border:1px solid var(--border);
+    color:var(--text);border-radius:11px;padding:0 8px;font-size:13.5px;outline:none;cursor:pointer;
   }
-  .search input:focus{border-color:var(--accent)}
+  .search input{
+    flex:1;min-width:0;height:100%;max-height:46px;
+    background:rgba(0,0,0,0.25);border:1px solid var(--border);
+    color:var(--text);border-radius:11px;padding:0 14px;font-size:15px;outline:none;
+  }
+  .search input:focus,.search select.engine:focus{border-color:var(--accent)}
+  /* search options popover (custom engine URL) — mirrors .clock-cfg */
+  .search-cfg{position:absolute;top:42px;right:8px;z-index:40;width:250px;
+    background:var(--card-solid);border:1px solid var(--border);border-radius:12px;
+    box-shadow:0 16px 44px rgba(0,0,0,0.55);padding:11px;display:flex;flex-direction:column;gap:7px}
+  .search-cfg .cc-lab{font-size:12px;font-weight:700;color:var(--text)}
+  .search-cfg .cc-url{background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:7px 9px;font-size:12.5px;outline:none}
+  .search-cfg .cc-url:focus{border-color:var(--accent)}
+  .search-cfg .cc-note{font-size:11px;color:var(--dim);line-height:1.45}
 
   /* AI "For You" feed */
   .foryou{display:flex;flex-direction:column;height:100%}
@@ -559,6 +579,10 @@ function migrate(s){
     (s.widgets||[]).forEach(w=>{ if(w.type==="clock" && !w.clock) w.clock = {tz:"local", seconds:false, hour24:false, analog:false, showTz:false}; });
     s.__v = 7;
   }
+  if(s.__v < 8){
+    (s.widgets||[]).forEach(w=>{ if(w.type==="search" && !w.search) w.search = {engine:"google", customUrl:""}; });
+    s.__v = 8;
+  }
 }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 
@@ -621,8 +645,8 @@ function render(){
     const closeTitle = w.type==="feed" ? "Remove feed" : w.type==="clock" ? "Remove clock" : "Hide widget";
     const refreshBtn = (w.type==="feed"||w.type==="art"||w.type==="weather")
       ? `<button class="w-btn" data-act="refresh" title="Refresh">⟳</button>` : "";
-    const configBtn = (w.type==="clock")
-      ? `<button class="w-btn" data-act="config" title="Clock options">⚙</button>` : "";
+    const configBtn = (w.type==="clock" || w.type==="search")
+      ? `<button class="w-btn" data-act="config" title="${w.type==="clock"?"Clock options":"Search options"}">⚙</button>` : "";
 
     el.innerHTML = `
       <div class="w-head">
@@ -651,7 +675,9 @@ function render(){
       loadWidget(w, el.querySelector(".w-body"));
     });
     const cfgB = el.querySelector('[data-act="config"]');
-    if(cfgB) cfgB.addEventListener("click",e=>{ e.stopPropagation(); toggleClockConfig(w, el, el.querySelector(".w-body")); });
+    if(cfgB) cfgB.addEventListener("click",e=>{ e.stopPropagation();
+      (w.type==="search" ? toggleSearchConfig : toggleClockConfig)(w, el, el.querySelector(".w-body"));
+    });
 
     loadWidget(w, el.querySelector(".w-body"));
   }
@@ -1311,7 +1337,7 @@ function startClockTicker(){
 // In-card clock options popover, opened by the ⚙ in the clock header.
 function toggleClockConfig(w, el, body){
   const existing = el.querySelector(".clock-cfg");
-  if(existing){ closeClockPop(el, existing); return; }
+  if(existing){ closePopover(el, existing); return; }
   el.classList.add("cfg-open");                 // let the popover spill outside the card
   const cfg = w.clock;
   const pop = document.createElement("div");
@@ -1332,22 +1358,66 @@ function toggleClockConfig(w, el, body){
     if(tt && e.target.value!=="local"){ w.title = zoneCity(e.target.value); tt.textContent = w.title; }
     save(); loadClock(w, body);
   });
-  const onDoc = ev=>{ if(pop.contains(ev.target) || ev.target.closest('[data-act="config"]')) return; closeClockPop(el, pop); };
+  const onDoc = ev=>{ if(pop.contains(ev.target) || ev.target.closest('[data-act="config"]')) return; closePopover(el, pop); };
   pop.__onDoc = onDoc;
   setTimeout(()=>document.addEventListener("pointerdown", onDoc), 0);
 }
-function closeClockPop(el, pop){ if(pop.__onDoc) document.removeEventListener("pointerdown", pop.__onDoc); pop.remove(); el.classList.remove("cfg-open"); }
+function closePopover(el, pop){ if(pop.__onDoc) document.removeEventListener("pointerdown", pop.__onDoc); pop.remove(); el.classList.remove("cfg-open"); }
 
 /* ---------- Search ---------- */
+const SEARCH_ENGINES = {
+  google: {label:"Google", url:"https://www.google.com/search?q="},
+  bing:   {label:"Bing",   url:"https://www.bing.com/search?q="},
+  yahoo:  {label:"Yahoo",  url:"https://search.yahoo.com/search?p="},   // Yahoo uses ?p=
+  custom: {label:"Custom", url:""}                                      // uses w.search.customUrl
+};
 function loadSearch(w, body){
+  const cfg = w.search || (w.search = {engine:"google", customUrl:""});
+  body.classList.add("search-body");
+  const opts = Object.entries(SEARCH_ENGINES)
+    .map(([id,e])=>`<option value="${id}"${cfg.engine===id?" selected":""}>${esc(e.label)}</option>`).join("");
   body.innerHTML = `<div class="search"><form>
-      <input type="text" placeholder="Search Google…" autocomplete="off">
+      <select class="engine" title="Search engine">${opts}</select>
+      <input type="text" autocomplete="off">
     </form></div>`;
+  const sel = body.querySelector(".engine"), inp = body.querySelector("input");
+  const syncPlaceholder = ()=>{
+    inp.placeholder = (cfg.engine==="custom" && !cfg.customUrl)
+      ? "Set a custom URL in ⚙ →"
+      : "Search "+((SEARCH_ENGINES[cfg.engine]||SEARCH_ENGINES.google).label)+"…";
+  };
+  syncPlaceholder();
+  body.__syncSearchPlaceholder = syncPlaceholder;   // let the ⚙ popover refresh the hint when a custom URL is typed
+  sel.addEventListener("change",()=>{ cfg.engine = sel.value; save(); syncPlaceholder(); });
   body.querySelector("form").addEventListener("submit",e=>{
     e.preventDefault();
-    const q = body.querySelector("input").value.trim();
-    if(q) window.location.href = "https://www.google.com/search?q="+encodeURIComponent(q);
+    const q = inp.value.trim(); if(!q) return;
+    const base = cfg.engine==="custom" ? cfg.customUrl : (SEARCH_ENGINES[cfg.engine]||SEARCH_ENGINES.google).url;
+    if(!base){ toggleSearchConfig(w, body.closest(".w"), body); return; }   // custom chosen but no URL yet → open ⚙
+    window.location.href = base + encodeURIComponent(q);
   });
+}
+// In-card search options popover (custom engine URL), opened by the ⚙ in the header.
+function toggleSearchConfig(w, el, body){
+  const existing = el.querySelector(".search-cfg");
+  if(existing){ closePopover(el, existing); return; }
+  el.classList.add("cfg-open");
+  const cfg = w.search || (w.search = {engine:"google", customUrl:""});
+  const pop = document.createElement("div");
+  pop.className = "search-cfg";
+  pop.innerHTML = `
+    <div class="cc-lab">Custom search URL</div>
+    <input class="cc-url" type="text" value="${esc(cfg.customUrl||"")}" placeholder="https://www.dogpile.com/serp?q=">
+    <div class="cc-note">Used when the engine is set to <b>Custom</b>. Your search text is appended to the end.</div>`;
+  el.appendChild(pop);
+  const urlInp = pop.querySelector(".cc-url");
+  urlInp.addEventListener("input",()=>{
+    cfg.customUrl = urlInp.value.trim(); save();
+    if(body.__syncSearchPlaceholder) body.__syncSearchPlaceholder();   // drop the "set a URL" hint once one's entered
+  });
+  const onDoc = ev=>{ if(pop.contains(ev.target) || ev.target.closest('[data-act="config"]')) return; closePopover(el, pop); };
+  pop.__onDoc = onDoc;
+  setTimeout(()=>document.addEventListener("pointerdown", onDoc), 0);
 }
 
 /* ============================================================
@@ -1379,7 +1449,7 @@ function showUtil(type){
   const existing = state.widgets.find(x=>x.type===type);
   if(existing){ existing.hidden=false; }
   else {
-    const sz = type==="art"?{w:4,h:4}:type==="search"?{w:6,h:2}:type==="clock"?{w:4,h:2}:{w:4,h:3};
+    const sz = type==="art"?{w:4,h:4}:type==="search"?{w:6,h:1}:type==="clock"?{w:4,h:2}:{w:4,h:3};
     const titles={weather:"Weather",art:"Photo of the Day",clock:"Clock",search:"Search"};
     state.widgets.push({id:type, type, title:titles[type], pos:firstFreeSpot(sz.w,sz.h)});
   }
