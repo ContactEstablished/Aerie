@@ -34,7 +34,7 @@
 - [Quick Start](#quick-start)
 - [Make It Your Chrome Home Page](#make-it-your-chrome-home-page)
 - [The Settings Panel](#the-settings-panel)
-- [Enabling AI Summaries (DeepSeek)](#enabling-ai-summaries-deepseek)
+- [Enabling AI Summaries](#enabling-ai-summaries)
 - [Arranging the Grid](#arranging-the-grid)
 - [Theming](#theming)
 - [How It Works](#how-it-works)
@@ -67,7 +67,7 @@ Everything is **configurable from a Settings panel** and **persists in your brow
 
 - 🦅 **One‑glance dashboard** — weather, news, and a daily photo in a single view.
 - 🧩 **Drag‑and‑drop grid** — move widgets by their header, resize from the corner; everything **snaps to an invisible grid**.
-- 🤖 **AI‑summarized news (optional)** — bring your own **DeepSeek** API key and feeds turn into rich "For You" cards: headline, one‑sentence summary, and a representative image pulled from the article.
+- 🤖 **AI‑summarized news (optional)** — bring your own **DeepSeek, OpenAI, or Anthropic** key and feeds turn into rich "For You" cards: headline, one‑sentence summary, and a representative image pulled from the article. Pick the **provider and model per feed**.
 - 📰 **Any RSS/Atom feed** — CNN, BBC, and The Verge ship as defaults; add, edit, or remove any feed you like.
 - 🌤️ **Local weather, no API key** — auto‑locates you by IP (or set a city / use GPS), powered by Open‑Meteo.
 - 🖼️ **Photo of the Day** — Fstoppers' editor‑picked photo by default, or a random masterpiece from the Art Institute of Chicago or The Met.
@@ -94,18 +94,20 @@ Everything is **configurable from a Settings panel** and **persists in your brow
 - Reads **any RSS or Atom feed**. Defaults: **CNN Top Stories**, **BBC World**, **The Verge**.
 - Two display modes:
   - **Classic** (no AI key) — a clean numbered headline list with relative timestamps.
-  - **AI "For You" cards** (with a DeepSeek key) — see below.
+  - **AI "For You" cards** (with an AI provider key) — see below.
 - Feeds are fetched primarily through **[rss2json](https://rss2json.com/)** (reliable, CORS‑friendly, no key), with a **CORS‑proxy fallback** (`allorigins` → `codetabs`) for anything rss2json can't read.
 - Add / edit / remove feeds in Settings. A blank or invalid feed URL is safely ignored (it won't fire network requests).
 
-### AI Summaries (optional, DeepSeek)
-When you add a **[DeepSeek](https://platform.deepseek.com/)** API key, each feed becomes a magazine‑style card stack:
+### AI Summaries (optional — DeepSeek, OpenAI, or Anthropic)
+Add an API key for one or more of **[DeepSeek](https://platform.deepseek.com/)**, **[OpenAI](https://platform.openai.com/)**, or **[Anthropic](https://console.anthropic.com/)**, and feeds can become a magazine‑style card stack:
 1. Grabs the top **X** items (configurable, default 5).
 2. **Visits each article page** (through the CORS proxy) to extract its representative image (`og:image`) and real body text.
-3. Sends all items for a feed in **one batched call** to DeepSeek, which returns a **single factual sentence** per article.
+3. Sends all items for a feed in **one batched call** to the feed's chosen provider, which returns a **single factual sentence** per article.
 4. Renders **headline + one‑line summary + thumbnail**, with a "More from …" link.
 
-Results are **cached per feed for 30 minutes** (configurable), so reloading the page within that window costs nothing.
+**Per‑card control:** each feed independently chooses its **provider and model** — e.g. CNN via Anthropic Haiku, The Verge via OpenAI `gpt-4o-mini`, BBC left as plain headlines. All three providers are called **directly from your browser** (no backend); Anthropic uses its direct‑browser‑access header.
+
+Results are **cached per feed for 30 minutes** (configurable), and the cache keys on provider + model, so switching either rebuilds just that card.
 
 ### Photo of the Day
 - **Fstoppers — Photo of the Day** (default): the editors' daily pick, via its RSS feed.
@@ -181,7 +183,7 @@ Click **⚙ Settings** (top‑right) to open the configuration modal. Changes pr
 | --- | --- |
 | **Weather & Location** | Location mode (Auto‑IP / City / GPS), city name, and units (°F·mph or °C·km/h). |
 | **News Feeds** | Add, rename, re‑URL, or remove feeds. Each feed becomes its own widget. |
-| **AI Summaries (DeepSeek)** | Enable AI cards, paste/clear your API key, set **articles per feed**, **cache minutes**, and **model**. |
+| **AI Summaries** | Enable AI cards; paste/clear a **DeepSeek / OpenAI / Anthropic** key; set **articles per feed** and **cache minutes**. (Provider & model are chosen per feed in **News Feeds**.) |
 | **Photo of the Day** | Source: Fstoppers POTD, Art Institute of Chicago, or The Met. |
 | **Accent Color** | 8 preset swatches + custom color picker. |
 | **Background Color** | 8 preset base tones + custom color picker (gradient + glow preserved). |
@@ -192,19 +194,26 @@ Per‑widget controls live in each widget's header: **⟳** refreshes (and busts
 
 ---
 
-## Enabling AI Summaries (DeepSeek)
+## Enabling AI Summaries
 
-AI summaries are **optional** — without a key, feeds show the classic headline list.
+AI summaries are **optional** — without a key, feeds show the classic headline list. Aerie supports three providers, all called directly from the browser:
 
-1. Create an account and API key at **[platform.deepseek.com](https://platform.deepseek.com/)**.
-2. In Aerie: **⚙ Settings → AI Summaries (DeepSeek)** → check **"Enhance feeds with AI"** → paste your key.
-3. Optionally tune:
+| Provider | Get a key | Default model offered |
+| --- | --- | --- |
+| **DeepSeek** | [platform.deepseek.com](https://platform.deepseek.com/) | `deepseek-chat` |
+| **OpenAI** | [platform.openai.com](https://platform.openai.com/) | `gpt-4o-mini` |
+| **Anthropic** | [console.anthropic.com](https://console.anthropic.com/) | `claude-haiku-4-5` |
+
+1. In Aerie: **⚙ Settings → AI Summaries** → check **"Enhance feeds with AI"** → paste a key into **one or more** of the DeepSeek / OpenAI / Anthropic fields.
+2. In **Settings → News Feeds**, set each feed's **Provider** and **Model** on its **AI** line. (Choose *Off* to keep a feed as plain headlines.)
+3. Optionally tune the globals:
    - **Articles / feed** — how many items to summarize (default **5**).
    - **Cache (min)** — how long a feed's AI results are reused (default **30**).
-   - **Model** — defaults to `deepseek-chat`.
-4. **Save.** Feeds rebuild as "For You" cards.
+4. **Save.** Feeds with a provider rebuild as "For You" cards.
 
-**Cost & rate:** Each feed makes **one** DeepSeek call per refresh, and refreshes are throttled by the cache window, so usage stays low. DeepSeek's pricing is modest, but you control the spend via the cache and article‑count settings. Use **Clear key** anytime to revert to the classic list.
+**Cost & rate:** Each feed makes **one** call to its provider per refresh, throttled by the cache window, so usage stays low. The default models (`gpt-4o-mini`, Claude Haiku, `deepseek-chat`) are the cheap/fast tier — ideal for one‑sentence summaries. Use a provider's **Clear** button anytime to drop affected feeds back to plain headlines.
+
+> **Note on OpenAI errors:** OpenAI doesn't attach CORS headers to its `401` responses, so an *invalid* OpenAI key shows up as a generic "failed to fetch" in that card rather than a clean error message. A valid key works normally. (DeepSeek and Anthropic return clean error messages.)
 
 ---
 
@@ -239,16 +248,16 @@ Both offer eight curated presets plus a full custom color picker, and both previ
 - **State** lives in a single object persisted to `localStorage`, with a small **schema‑migration** routine (`__v`) that upgrades older saved layouts in place when you update Aerie.
 - **The grid** is a CSS Grid (`12 × 9`). Each widget stores `{col, row, w, h}`; dragging/resizing recomputes those from pointer position against the grid's measured cell size and re‑applies `grid-column` / `grid-row`. Faint grid lines are painted with layered CSS gradients.
 - **Networking** is plain `fetch`:
-  - Services that allow cross‑origin requests (Open‑Meteo, rss2json, DeepSeek, the museums, IP‑geo services) are called **directly**.
+  - Services that allow cross‑origin requests (Open‑Meteo, rss2json, the AI providers, the museums, IP‑geo services) are called **directly**.
   - Feeds/pages that don't are routed through a **public CORS proxy** (`allorigins`, with `codetabs` as fallback). A small global limiter caps simultaneous proxy requests, and a retry‑with‑backoff smooths transient rate limits.
-- **AI feeds** parse RSS → fetch each article (concurrency‑limited) for image + text → one batched DeepSeek call → render → cache.
+- **AI feeds** parse RSS → fetch each article (concurrency‑limited) for image + text → one batched call to the feed's chosen provider (DeepSeek/OpenAI via chat‑completions, Anthropic via the Messages API) → render → cache.
 - **Resilience first:** every data path has a fallback and shows cached or partial data rather than failing hard.
 
 ---
 
 ## Data Sources
 
-All free and key‑less, **except DeepSeek** (optional, your key):
+All free and key‑less, **except the AI providers** (optional, your key):
 
 | Purpose | Service | Key required |
 | --- | --- | --- |
@@ -257,7 +266,7 @@ All free and key‑less, **except DeepSeek** (optional, your key):
 | Reverse geocoding | [BigDataCloud](https://www.bigdatacloud.com/) | No |
 | RSS → JSON (primary) | [rss2json](https://rss2json.com/) | No |
 | CORS proxy (fallback) | `api.allorigins.win` → `api.codetabs.com` | No |
-| AI summaries | [DeepSeek](https://platform.deepseek.com/) (`chat/completions`) | **Yes (optional)** |
+| AI summaries | [DeepSeek](https://platform.deepseek.com/) · [OpenAI](https://platform.openai.com/) · [Anthropic](https://console.anthropic.com/) | **Yes (optional)** |
 | Photo of the Day | [Fstoppers POTD](https://fstoppers.com/potd) | No |
 | Artwork | [Art Institute of Chicago](https://api.artic.edu/docs/) · [The Met](https://metmuseum.github.io/) | No |
 | Search | Google | No |
@@ -272,7 +281,7 @@ Aerie stores everything client‑side. Keys used in `localStorage`:
 
 | Key | Contents | Refresh policy |
 | --- | --- | --- |
-| `myhome.v1` | Main state: layout, widgets, feeds, units, theme, AI settings (incl. API key), proxy. Versioned via `__v` (currently **5**). | On every change |
+| `myhome.v1` | Main state: layout, widgets, feeds (incl. per‑feed AI provider/model), units, theme, AI settings (incl. provider API keys), proxy. Versioned via `__v` (currently **6**). | On every change |
 | `myhome.feeds` | Built AI "For You" results per feed. | Older than the AI **cache minutes** (default 30) |
 | `myhome.wx` | Last successful weather reading + resolved location. | On each successful fetch |
 | `myhome.potd` | The day's photo (per source). | New local day, or manual ⟳ |
@@ -283,11 +292,11 @@ To wipe everything and start fresh: **Settings → Advanced → Reset everything
 
 ## Privacy & Security
 
-- **Local‑first.** Your layout, preferences, and DeepSeek API key live only in this browser's `localStorage`.
+- **Local‑first.** Your layout, preferences, and any provider API keys live only in this browser's `localStorage`.
 - **Direct calls only.** Aerie talks to the services listed above directly from your browser. Nothing is sent to any Aerie‑owned backend — there isn't one.
-- **Your DeepSeek key** is sent only to `api.deepseek.com`, only when AI feeds refresh.
-- **Heads‑up:** since the key is stored with your settings, **don't share your `home.html`/exported storage** after entering a key. Use **Clear key** before sharing.
-- **CORS proxies** are third‑party public services; feed URLs (and article page requests) pass through them. They aren't sent your API key. You can change the proxy in Settings.
+- **Your API keys** are each sent only to their own provider (`api.deepseek.com`, `api.openai.com`, `api.anthropic.com`), only when a feed using that provider refreshes.
+- **Heads‑up:** since keys are stored with your settings, **don't share your `home.html`/exported storage** after entering a key. Use a provider's **Clear** button before sharing.
+- **CORS proxies** are third‑party public services; feed URLs (and article page requests) pass through them. They are **not** sent your API keys. You can change the proxy in Settings.
 
 ---
 
@@ -311,7 +320,7 @@ Some VPN exit nodes are blocked by the public proxy/RSS/IP services. Toggle the 
 The IP‑based location can be imprecise. Set a **City** (or enable **Precise/GPS**) in **Settings → Weather & Location**. If all IP providers are momentarily down, Aerie shows the last cached reading.
 
 **AI cards aren't appearing.**
-Check that the key is entered and **"Enhance feeds with AI"** is on. A bad key surfaces a DeepSeek error in the affected widget. Remember results cache for the configured minutes — hit ⟳ to force a rebuild.
+Check that **"Enhance feeds with AI"** is on, the feed has a **Provider** selected (not *Off*), and that provider's **key** is filled in. A bad key surfaces an error in the affected card (for OpenAI specifically, an invalid key reads as a generic "failed to fetch" — see the note in *Enabling AI Summaries*). Results cache for the configured minutes — hit ⟳ to force a rebuild.
 
 **Console shows `429 / Too Many Requests` from a proxy.**
 That's a public proxy throttling under load (worse on a cold load with many feeds, or if a feed has a blank URL). It usually self‑resolves on the next refresh; the rss2json primary path avoids the proxy for most feeds.
@@ -347,20 +356,14 @@ Because it's one file, tweaking is direct — open `home.html` and search for th
 - **Grid line subtlety:** the `--line` CSS variable.
 - **Color presets:** `PRESET_ACCENTS` and `PRESET_BGS` arrays.
 - **CORS proxies:** the `PROXIES` array.
-- **AI prompt / model:** `deepseekSummarize()`.
+- **AI prompt & provider routing:** `aiSummarize()` and the `AI_PROVIDERS` / `MODEL_OPTIONS` / `DEFAULT_MODELS` constants (add models or providers here).
 - **Branding:** swap the files in `img/` (keep the same names, or update the `<link>`/`<img>` references near the top of the file).
 
 ---
 
-## Roadmap Ideas
+## Roadmap
 
-Not promises — just directions Aerie could grow:
-
-- Thumbnails in the classic (no‑key) feed list.
-- A stocks/crypto ticker and a to‑do/notes widget.
-- Optional rss2json API key field for more items per feed.
-- Light‑theme support with auto‑contrast text.
-- Import/export of settings as a JSON file.
+Planned work and ideas live in **[ROADMAP.md](ROADMAP.md)** — what's done, what's in progress, and what's on deck.
 
 ---
 
@@ -374,7 +377,7 @@ Released under the **MIT License** — see [`LICENSE`](LICENSE). (Swap this out 
 
 - Weather by **[Open‑Meteo](https://open-meteo.com/)**.
 - Feed parsing by **[rss2json](https://rss2json.com/)**; CORS proxying by **[AllOrigins](https://allorigins.win/)** and **[CodeTabs](https://codetabs.com/)**.
-- AI summaries by **[DeepSeek](https://www.deepseek.com/)**.
+- AI summaries by **[DeepSeek](https://www.deepseek.com/)**, **[OpenAI](https://openai.com/)**, and **[Anthropic](https://www.anthropic.com/)**.
 - Photography from **[Fstoppers](https://fstoppers.com/)**; artwork from the **[Art Institute of Chicago](https://www.artic.edu/)** and **[The Metropolitan Museum of Art](https://www.metmuseum.org/)**.
 - Geolocation by **ipwho.is**, **geojs.io**, **ipapi.co**, and **[BigDataCloud](https://www.bigdatacloud.com/)**.
 
