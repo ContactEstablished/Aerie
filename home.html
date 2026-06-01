@@ -177,8 +177,32 @@
   /* ---------- Clock ---------- */
   .clock{height:100%;display:flex;flex-direction:column;justify-content:center;gap:2px}
   .clock .time{font-size:40px;font-weight:700;letter-spacing:1px;font-variant-numeric:tabular-nums}
+  .clock .time .ampm{font-size:18px;color:var(--muted);font-weight:600;margin-left:2px}
+  .clock .time .secs{color:var(--muted);font-weight:600}
   .clock .date{color:var(--muted);font-size:14px}
   .clock .greet{color:var(--accent);font-size:13px;font-weight:600;margin-top:4px}
+  .clock .tz{align-self:flex-start;margin-top:7px;font-size:10.5px;font-weight:700;letter-spacing:.5px;color:var(--dim);background:rgba(255,255,255,0.05);padding:2px 7px;border-radius:6px}
+  /* analog */
+  .clock.analog{justify-content:center;align-items:center;gap:6px;padding:4px 0}
+  .clock.analog svg{flex:1 1 auto;min-height:0;width:100%;height:100%}
+  .clock.analog .face{fill:rgba(255,255,255,0.03);stroke:var(--border);stroke-width:1}
+  .clock.analog .tick{stroke:var(--muted);stroke-width:1;opacity:.45}
+  .clock.analog .tick.major{stroke:var(--text);stroke-width:1.7;opacity:.85}
+  .clock.analog .hand{stroke:var(--text);stroke-width:2.4;stroke-linecap:round}
+  .clock.analog .hand.min{stroke-width:1.8}
+  .clock.analog .hand.sec{stroke:var(--accent);stroke-width:1}
+  .clock.analog .pin{fill:var(--accent)}
+  .clock.analog .ana-meta{flex:0 0 auto;display:flex;gap:8px;align-items:center;font-size:10.5px;color:var(--dim)}
+  .clock.analog .ana-meta .tz{background:rgba(255,255,255,0.05);padding:2px 7px;border-radius:6px;font-weight:700;letter-spacing:.5px}
+  /* clock options popover */
+  .w.cfg-open{overflow:visible;z-index:60}
+  .clock-cfg{position:absolute;top:42px;right:8px;z-index:40;width:212px;
+    background:var(--card-solid);border:1px solid var(--border);border-radius:12px;
+    box-shadow:0 16px 44px rgba(0,0,0,0.55);padding:11px;display:flex;flex-direction:column;gap:8px}
+  .clock-cfg .cc{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text);cursor:pointer}
+  .clock-cfg .cc input{width:15px;height:15px;accent-color:var(--accent)}
+  .clock-cfg .cc-row{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--muted);margin-top:2px}
+  .clock-cfg .cc-zone{flex:1;min-width:0;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 8px;font-size:12.5px;outline:none}
 
   /* ---------- Search ---------- */
   .search form{display:flex;gap:8px;height:100%;align-items:center}
@@ -218,11 +242,22 @@
   .overlay{position:fixed;inset:0;background:rgba(4,7,14,0.6);-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px);display:none;align-items:center;justify-content:center;z-index:200}
   .overlay.open{display:flex}
   .modal{
-    width:min(620px,94vw);max-height:88vh;overflow:auto;
+    width:min(680px,96vw);max-height:88vh;overflow:hidden;
+    display:flex;flex-direction:column;
     background:var(--card-solid);border:1px solid var(--border);border-radius:18px;
     box-shadow:0 30px 80px rgba(0,0,0,0.6);
   }
-  .modal h2{margin:0;padding:18px 20px;font-size:16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+  .modal h2{margin:0;padding:16px 20px;font-size:16px;display:flex;align-items:center;gap:8px;flex:0 0 auto}
+  .tabs{display:flex;gap:2px;padding:0 12px;flex-wrap:wrap;border-bottom:1px solid var(--border);flex:0 0 auto}
+  .tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--muted);
+       padding:9px 11px;margin-bottom:-1px;border-radius:9px 9px 0 0;cursor:pointer;
+       font-size:12.5px;font-weight:600;white-space:nowrap;font-family:inherit}
+  .tab:hover{color:var(--text);background:rgba(255,255,255,0.05)}
+  .tab.active{color:var(--text);border-bottom-color:var(--accent)}
+  .tabpanes{flex:1 1 auto;min-height:0;overflow:auto}
+  .tabpane{display:none}
+  .tabpane.active{display:block}
+  .tabpane .sec:last-child{border-bottom:none}
   .modal .sec{padding:16px 20px;border-bottom:1px solid var(--border)}
   .modal .sec h3{margin:0 0 10px;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
   .row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
@@ -247,7 +282,7 @@
   input[type=color].field{height:38px;max-width:64px;padding:3px;cursor:pointer}
   .chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);margin-bottom:6px;cursor:pointer}
   .chk input{width:16px;height:16px;accent-color:var(--accent)}
-  .modal .foot{padding:14px 20px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+  .modal .foot{padding:14px 20px;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;flex:0 0 auto;border-top:1px solid var(--border)}
   .danger{color:#ff8b8b;border-color:rgba(255,139,139,0.35)}
   .smallnote{font-size:11.5px;color:var(--dim);line-height:1.5;margin-top:6px}
   .iconbtn{font-size:15px}
@@ -269,86 +304,123 @@
   <div class="overlay" id="overlay">
     <div class="modal">
       <h2>⚙ Settings</h2>
+      <div class="tabs" id="settingsTabs">
+        <button class="tab active" type="button" data-tab="wc">Weather &amp; Clock</button>
+        <button class="tab" type="button" data-tab="feeds">News Feeds</button>
+        <button class="tab" type="button" data-tab="photo">Photo of the Day</button>
+        <button class="tab" type="button" data-tab="colors">Colors</button>
+        <button class="tab" type="button" data-tab="ai">AI Settings</button>
+        <button class="tab" type="button" data-tab="adv">Advanced</button>
+      </div>
 
-      <div class="sec">
-        <h3>Weather &amp; Location</h3>
-        <div class="row">
-          <label>Location</label>
-          <select class="field" id="locMode">
-            <option value="ip">Auto (by IP)</option>
-            <option value="city">Enter a city</option>
-            <option value="gps">Precise (GPS)</option>
-          </select>
-          <input class="field" id="locCity" placeholder="e.g. Denver, CO" style="display:none">
+      <div class="tabpanes">
+
+        <!-- Weather & Clock -->
+        <div class="tabpane active" data-pane="wc">
+          <div class="sec">
+            <h3>Weather &amp; Location</h3>
+            <div class="row">
+              <label>Location</label>
+              <select class="field" id="locMode">
+                <option value="ip">Auto (by IP)</option>
+                <option value="city">Enter a city</option>
+                <option value="gps">Precise (GPS)</option>
+              </select>
+              <input class="field" id="locCity" placeholder="e.g. Denver, CO" style="display:none">
+            </div>
+            <div class="row">
+              <label>Units</label>
+              <select class="field" id="units">
+                <option value="us">Fahrenheit · mph</option>
+                <option value="metric">Celsius · km/h</option>
+              </select>
+            </div>
+          </div>
+          <div class="sec">
+            <h3>Show / Hide</h3>
+            <label class="chk"><input type="checkbox" data-util="weather"> Weather</label>
+            <label class="chk"><input type="checkbox" data-util="clock"> Clocks</label>
+            <button class="btn" id="addClockBtn" style="margin-top:6px">＋ Add clock</button>
+            <div class="smallnote">Add a clock for another time zone. Configure each clock — analog/digital, seconds, 24-hour, zone — with the ⚙ button in its card header.</div>
+          </div>
         </div>
-        <div class="row">
-          <label>Units</label>
-          <select class="field" id="units">
-            <option value="us">Fahrenheit · mph</option>
-            <option value="metric">Celsius · km/h</option>
-          </select>
+
+        <!-- News Feeds -->
+        <div class="tabpane" data-pane="feeds">
+          <div class="sec">
+            <h3>News Feeds</h3>
+            <div id="feedEditor"></div>
+            <button class="btn" id="addFeedBtn2" style="margin-top:6px">＋ Add feed</button>
+            <div class="smallnote">Add any site's RSS/Atom URL. Examples — NYT: <code>https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml</code> · Hacker News: <code>https://hnrss.org/frontpage</code> · ESPN: <code>https://www.espn.com/espn/rss/news</code></div>
+          </div>
+          <div class="sec">
+            <h3>Show / Hide</h3>
+            <label class="chk"><input type="checkbox" data-util="news"> News feeds (all feed cards)</label>
+          </div>
         </div>
-      </div>
 
-      <div class="sec">
-        <h3>News Feeds</h3>
-        <div id="feedEditor"></div>
-        <button class="btn" id="addFeedBtn2" style="margin-top:6px">＋ Add feed</button>
-        <div class="smallnote">Add any site's RSS/Atom URL. Examples — NYT: <code>https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml</code> · Hacker News: <code>https://hnrss.org/frontpage</code> · ESPN: <code>https://www.espn.com/espn/rss/news</code></div>
-      </div>
-
-      <div class="sec">
-        <h3>AI Summaries</h3>
-        <label class="chk"><input type="checkbox" id="aiEnabled"> Enhance feeds with AI — set a <b>provider &amp; model per feed</b> in News Feeds above</label>
-        <div class="row"><label>DeepSeek key</label><input class="field" id="key_deepseek" type="password" placeholder="sk-..." autocomplete="off"><button class="btn danger" data-clearkey="deepseek" type="button" style="flex:0 0 auto">Clear</button></div>
-        <div class="row"><label>OpenAI key</label><input class="field" id="key_openai" type="password" placeholder="sk-..." autocomplete="off"><button class="btn danger" data-clearkey="openai" type="button" style="flex:0 0 auto">Clear</button></div>
-        <div class="row"><label>Anthropic key</label><input class="field" id="key_anthropic" type="password" placeholder="sk-ant-..." autocomplete="off"><button class="btn danger" data-clearkey="anthropic" type="button" style="flex:0 0 auto">Clear</button></div>
-        <div class="row">
-          <label>Articles / feed</label><input class="field" id="aiCount" type="number" min="1" max="15" style="flex:0 0 auto;max-width:84px">
-          <label style="min-width:auto">Cache (min)</label><input class="field" id="aiCache" type="number" min="1" max="240" style="flex:0 0 auto;max-width:84px">
+        <!-- Photo of the Day -->
+        <div class="tabpane" data-pane="photo">
+          <div class="sec">
+            <h3>Photo of the Day</h3>
+            <div class="row">
+              <label>Source</label>
+              <select class="field" id="artSrc">
+                <option value="fstoppers">Fstoppers — Photo of the Day</option>
+                <option value="artic">Art Institute of Chicago (random)</option>
+                <option value="met">The Met (random)</option>
+              </select>
+            </div>
+            <label class="chk" style="margin-top:8px"><input type="checkbox" data-util="art"> Show Photo of the Day</label>
+          </div>
         </div>
-        <div class="smallnote">Keys live only in this browser and are sent directly to each provider — DeepSeek (<code>platform.deepseek.com</code>), OpenAI (<code>platform.openai.com</code>), Anthropic (<code>console.anthropic.com</code>). Each feed = 1 call per refresh, cached for the minutes above.</div>
-      </div>
 
-      <div class="sec">
-        <h3>Photo of the Day</h3>
-        <div class="row">
-          <label>Source</label>
-          <select class="field" id="artSrc">
-            <option value="fstoppers">Fstoppers — Photo of the Day</option>
-            <option value="artic">Art Institute of Chicago (random)</option>
-            <option value="met">The Met (random)</option>
-          </select>
+        <!-- Colors -->
+        <div class="tabpane" data-pane="colors">
+          <div class="sec">
+            <h3>Accent Color</h3>
+            <div class="swatches" id="swatches"></div>
+            <div class="row"><label>Custom</label><input type="color" class="field" id="accentCustom"><span class="smallnote" style="margin:0">Recolors highlights, buttons, scrollbars, the background glow and the feed accent bar.</span></div>
+          </div>
+          <div class="sec">
+            <h3>Background Color</h3>
+            <div class="swatches" id="bgSwatches"></div>
+            <div class="row"><label>Custom</label><input type="color" class="field" id="bgCustom"><span class="smallnote" style="margin:0">Sets the base background tone; a subtle gradient fade and the accent glow stay layered on top for depth.</span></div>
+          </div>
         </div>
-      </div>
 
-      <div class="sec">
-        <h3>Accent Color</h3>
-        <div class="swatches" id="swatches"></div>
-        <div class="row"><label>Custom</label><input type="color" class="field" id="accentCustom"><span class="smallnote" style="margin:0">Recolors highlights, buttons, scrollbars, the background glow and the feed accent bar.</span></div>
-      </div>
-
-      <div class="sec">
-        <h3>Background Color</h3>
-        <div class="swatches" id="bgSwatches"></div>
-        <div class="row"><label>Custom</label><input type="color" class="field" id="bgCustom"><span class="smallnote" style="margin:0">Sets the base background tone; a subtle gradient fade and the accent glow stay layered on top for depth.</span></div>
-      </div>
-
-      <div class="sec">
-        <h3>Widgets</h3>
-        <label class="chk"><input type="checkbox" data-util="weather"> Weather</label>
-        <label class="chk"><input type="checkbox" data-util="art"> Photo of the Day</label>
-        <label class="chk"><input type="checkbox" data-util="clock"> Clock</label>
-        <label class="chk"><input type="checkbox" data-util="search"> Search bar</label>
-      </div>
-
-      <div class="sec">
-        <h3>Advanced</h3>
-        <div class="row">
-          <label>CORS proxy</label>
-          <input class="field" id="proxy" placeholder="proxy URL prefix">
+        <!-- AI Settings -->
+        <div class="tabpane" data-pane="ai">
+          <div class="sec">
+            <h3>AI Summaries</h3>
+            <label class="chk"><input type="checkbox" id="aiEnabled"> Enhance feeds with AI — set a <b>provider &amp; model per feed</b> in the News Feeds tab</label>
+            <div class="row"><label>DeepSeek key</label><input class="field" id="key_deepseek" type="password" placeholder="sk-..." autocomplete="off"><button class="btn danger" data-clearkey="deepseek" type="button" style="flex:0 0 auto">Clear</button></div>
+            <div class="row"><label>OpenAI key</label><input class="field" id="key_openai" type="password" placeholder="sk-..." autocomplete="off"><button class="btn danger" data-clearkey="openai" type="button" style="flex:0 0 auto">Clear</button></div>
+            <div class="row"><label>Anthropic key</label><input class="field" id="key_anthropic" type="password" placeholder="sk-ant-..." autocomplete="off"><button class="btn danger" data-clearkey="anthropic" type="button" style="flex:0 0 auto">Clear</button></div>
+            <div class="row">
+              <label>Articles / feed</label><input class="field" id="aiCount" type="number" min="1" max="15" style="flex:0 0 auto;max-width:84px">
+              <label style="min-width:auto">Cache (min)</label><input class="field" id="aiCache" type="number" min="1" max="240" style="flex:0 0 auto;max-width:84px">
+            </div>
+            <div class="smallnote">Keys live only in this browser and are sent directly to each provider — DeepSeek (<code>platform.deepseek.com</code>), OpenAI (<code>platform.openai.com</code>), Anthropic (<code>console.anthropic.com</code>). Each feed = 1 call per refresh, cached for the minutes above.</div>
+          </div>
         </div>
-        <div class="smallnote">Feeds are fetched through a public CORS proxy (they can't be read directly from a local file). If feeds stop loading, try another: <code>https://api.allorigins.win/raw?url=</code> or <code>https://api.codetabs.com/v1/proxy/?quest=</code></div>
+
+        <!-- Advanced -->
+        <div class="tabpane" data-pane="adv">
+          <div class="sec">
+            <h3>Other Widgets</h3>
+            <label class="chk"><input type="checkbox" data-util="search"> Search bar</label>
+          </div>
+          <div class="sec">
+            <h3>Advanced</h3>
+            <div class="row">
+              <label>CORS proxy</label>
+              <input class="field" id="proxy" placeholder="proxy URL prefix">
+            </div>
+            <div class="smallnote">Feeds are fetched through a public CORS proxy (they can't be read directly from a local file). If feeds stop loading, try another: <code>https://api.allorigins.win/raw?url=</code> or <code>https://api.codetabs.com/v1/proxy/?quest=</code></div>
+          </div>
+        </div>
+
       </div>
 
       <div class="foot">
@@ -428,7 +500,7 @@ function defaultState(){
       {id:"bbc",   type:"feed", title:"BBC",        url:"http://feeds.bbci.co.uk/news/world/rss.xml",      pos:{c:4,r:0,w:4,h:6}, ai:{provider:"deepseek", model:"deepseek-chat"}},
       {id:"verge", type:"feed", title:"The Verge",  url:"https://www.theverge.com/rss/index.xml",          pos:{c:0,r:6,w:8,h:3}, ai:{provider:"deepseek", model:"deepseek-chat"}},
       {id:"weather",type:"weather", title:"Weather", pos:{c:8,r:0,w:4,h:3}},
-      {id:"clock",  type:"clock",   title:"Clock",   pos:{c:8,r:3,w:4,h:2}},
+      {id:"clock",  type:"clock",   title:"Clock",   pos:{c:8,r:3,w:4,h:2}, clock:{tz:"local", seconds:false, hour24:false, analog:false, showTz:false}},
       {id:"art",    type:"art",     title:"Photo of the Day", pos:{c:8,r:5,w:4,h:4}}
     ]
   };
@@ -482,6 +554,10 @@ function migrate(s){
     };
     (s.widgets||[]).forEach(w=>{ if(w.type==="feed" && !w.ai) w.ai = { provider: oldKey ? "deepseek" : "off", model: oldModel }; });
     s.__v = 6;
+  }
+  if(s.__v < 7){
+    (s.widgets||[]).forEach(w=>{ if(w.type==="clock" && !w.clock) w.clock = {tz:"local", seconds:false, hour24:false, analog:false, showTz:false}; });
+    s.__v = 7;
   }
 }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
@@ -540,16 +616,19 @@ function render(){
     el.dataset.id = w.id;
     applyPos(el,w);
 
-    const closeIcon = w.type==="feed" ? "✕" : "–";
-    const closeTitle = w.type==="feed" ? "Remove feed" : "Hide widget";
+    const removable = (w.type==="feed" || w.type==="clock");
+    const closeIcon = removable ? "✕" : "–";
+    const closeTitle = w.type==="feed" ? "Remove feed" : w.type==="clock" ? "Remove clock" : "Hide widget";
     const refreshBtn = (w.type==="feed"||w.type==="art"||w.type==="weather")
       ? `<button class="w-btn" data-act="refresh" title="Refresh">⟳</button>` : "";
+    const configBtn = (w.type==="clock")
+      ? `<button class="w-btn" data-act="config" title="Clock options">⚙</button>` : "";
 
     el.innerHTML = `
       <div class="w-head">
         <div class="w-title"><span class="ic">${ICONS[w.type]||"▫"}</span><span class="tt">${esc(w.title||w.type)}</span></div>
         <div class="w-btns">
-          ${refreshBtn}
+          ${refreshBtn}${configBtn}
           <button class="w-btn" data-act="close" title="${closeTitle}">${closeIcon}</button>
         </div>
       </div>
@@ -561,7 +640,7 @@ function render(){
     makeResizable(el,w);
 
     el.querySelector('[data-act="close"]').addEventListener("click",()=>{
-      if(w.type==="feed"){ state.widgets = state.widgets.filter(x=>x!==w); }
+      if(w.type==="feed" || w.type==="clock"){ state.widgets = state.widgets.filter(x=>x!==w); }
       else { w.hidden = true; }
       save(); render(); syncSettingsForm();
     });
@@ -571,6 +650,8 @@ function render(){
       if(w.type==="art")  clearArtCache();        // ⟳ gets a new photo even within the same day
       loadWidget(w, el.querySelector(".w-body"));
     });
+    const cfgB = el.querySelector('[data-act="config"]');
+    if(cfgB) cfgB.addEventListener("click",e=>{ e.stopPropagation(); toggleClockConfig(w, el, el.querySelector(".w-body")); });
 
     loadWidget(w, el.querySelector(".w-body"));
   }
@@ -1129,24 +1210,133 @@ async function fetchMetArt(){
 }
 
 /* ---------- Clock ---------- */
-let clockTimer = null;
-function loadClock(w, body){
-  const tick = ()=>{
-    const d = new Date();
-    let h = d.getHours();
-    const greet = h<12?"Good morning":h<18?"Good afternoon":"Good evening";
-    const hh = ((h%12)||12), mm = String(d.getMinutes()).padStart(2,"0");
-    const ap = h<12?"AM":"PM";
-    body.innerHTML = `<div class="clock">
-      <div class="time">${hh}:${mm} <span style="font-size:18px;color:var(--muted)">${ap}</span></div>
-      <div class="date">${d.toLocaleDateString(undefined,{weekday:"long",month:"long",day:"numeric"})}</div>
-      <div class="greet">${greet} ☕</div>
-    </div>`;
-  };
-  tick();
-  if(clockTimer) clearInterval(clockTimer);
-  clockTimer = setInterval(()=>{ if(document.body.contains(body)) tick(); else clearInterval(clockTimer); }, 1000*20);
+const CLOCK_ZONES = [
+  ["local","Local (this device)"],
+  ["America/Los_Angeles","Los Angeles"],
+  ["America/Denver","Denver"],
+  ["America/Chicago","Chicago"],
+  ["America/New_York","New York"],
+  ["America/Sao_Paulo","São Paulo"],
+  ["Europe/London","London"],
+  ["Europe/Paris","Paris"],
+  ["Europe/Berlin","Berlin"],
+  ["Europe/Moscow","Moscow"],
+  ["Asia/Dubai","Dubai"],
+  ["Asia/Kolkata","Mumbai"],
+  ["Asia/Singapore","Singapore"],
+  ["Asia/Shanghai","Shanghai"],
+  ["Asia/Tokyo","Tokyo"],
+  ["Australia/Sydney","Sydney"],
+  ["Pacific/Auckland","Auckland"]
+];
+function clockZoneOptions(cur){ return CLOCK_ZONES.map(([v,l])=>`<option value="${v}"${v===cur?" selected":""}>${esc(l)}</option>`).join(""); }
+function zoneCity(tz){ const f=CLOCK_ZONES.find(z=>z[0]===tz); return f?f[1]:String(tz||"").split("/").pop().replace(/_/g," "); }
+function tzNow(tz){   // current h/m/s + date pieces in the given IANA zone (undefined = local)
+  const parts = new Intl.DateTimeFormat("en-US",{timeZone:tz||undefined, hour12:false, hour:"2-digit", minute:"2-digit", second:"2-digit", weekday:"long", month:"long", day:"numeric"}).formatToParts(new Date());
+  const get=t=>parts.find(p=>p.type===t)?.value;
+  let h=parseInt(get("hour"),10); if(h===24) h=0;   // some engines emit "24" at midnight
+  return { h, m:parseInt(get("minute"),10), s:parseInt(get("second"),10), weekday:get("weekday"), month:get("month"), day:get("day") };
 }
+function tzLabel(tz){
+  try{ const p=new Intl.DateTimeFormat("en-US",{timeZone:tz||undefined, timeZoneName:"short"}).formatToParts(new Date()); return p.find(x=>x.type==="timeZoneName")?.value || ""; }catch(e){ return ""; }
+}
+
+function loadClock(w, body){
+  const cfg = w.clock || (w.clock = {tz:"local", seconds:false, hour24:false, analog:false, showTz:false});
+  if(cfg.analog){
+    const ticks = [...Array(12)].map((_,i)=>{
+      const a=i*30*Math.PI/180, x1=50+Math.sin(a)*42, y1=50-Math.cos(a)*42, x2=50+Math.sin(a)*46.5, y2=50-Math.cos(a)*46.5;
+      return `<line class="tick${i%3===0?" major":""}" x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}"/>`;
+    }).join("");
+    body.innerHTML = `
+      <div class="clock analog" data-clockid="${esc(w.id)}">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
+          <circle class="face" cx="50" cy="50" r="47.5"/>${ticks}
+          <line class="hand hour" x1="50" y1="50" x2="50" y2="28"/>
+          <line class="hand min"  x1="50" y1="50" x2="50" y2="17"/>
+          ${cfg.seconds?`<line class="hand sec" x1="50" y1="55" x2="50" y2="14"/>`:""}
+          <circle class="pin" cx="50" cy="50" r="2.3"/>
+        </svg>
+        <div class="ana-meta"><span class="ad"></span><span class="tz"></span></div>
+      </div>`;
+  } else {
+    body.innerHTML = `
+      <div class="clock" data-clockid="${esc(w.id)}">
+        <div class="time">—</div>
+        <div class="date"></div>
+        <div class="greet"></div>
+        <div class="tz"></div>
+      </div>`;
+  }
+  updateClockFace(body.querySelector(".clock"), w);
+  startClockTicker();
+}
+
+function updateClockFace(elc, w){
+  if(!elc) return;
+  const cfg = w.clock || {};
+  const tz = (cfg.tz && cfg.tz!=="local") ? cfg.tz : undefined;
+  const t = tzNow(tz);
+  if(cfg.analog){
+    const set=(sel,a)=>{ const el=elc.querySelector(sel); if(el) el.setAttribute("transform",`rotate(${a} 50 50)`); };
+    set(".hand.hour",(t.h%12)*30 + t.m*0.5);
+    set(".hand.min", t.m*6 + t.s*0.1);
+    set(".hand.sec", t.s*6);
+    const ad=elc.querySelector(".ad"); if(ad) ad.textContent=`${t.month.slice(0,3)} ${t.day}`;
+  } else {
+    let H=t.h, ap="";
+    if(!cfg.hour24){ ap=H<12?"AM":"PM"; H=(H%12)||12; }
+    const mm=String(t.m).padStart(2,"0");
+    const ss=cfg.seconds?`<span class="secs">:${String(t.s).padStart(2,"0")}</span>`:"";
+    const timeEl=elc.querySelector(".time");
+    if(timeEl) timeEl.innerHTML=`${H}:${mm}${ss}${ap?` <span class="ampm">${ap}</span>`:""}`;
+    const dateEl=elc.querySelector(".date"); if(dateEl) dateEl.textContent=`${t.weekday}, ${t.month} ${t.day}`;
+    const greetEl=elc.querySelector(".greet"); if(greetEl){ const g=t.h<12?"Good morning":t.h<18?"Good afternoon":"Good evening"; greetEl.textContent=`${g} ☕`; }
+  }
+  const tzEl=elc.querySelector(".tz");
+  if(tzEl){ const lab=cfg.showTz?tzLabel(tz):""; tzEl.textContent=lab; tzEl.style.display=lab?"":"none"; }
+}
+
+// single global ticker drives every clock card (queries DOM each second, so add/remove just works)
+function startClockTicker(){
+  if(window.__clockTicker) return;
+  window.__clockTicker = setInterval(()=>{
+    document.querySelectorAll(".w-body .clock[data-clockid]").forEach(elc=>{
+      const w = state.widgets.find(x=>x.id===elc.dataset.clockid);
+      if(w) updateClockFace(elc, w);
+    });
+  }, 1000);
+}
+
+// In-card clock options popover, opened by the ⚙ in the clock header.
+function toggleClockConfig(w, el, body){
+  const existing = el.querySelector(".clock-cfg");
+  if(existing){ closeClockPop(el, existing); return; }
+  el.classList.add("cfg-open");                 // let the popover spill outside the card
+  const cfg = w.clock;
+  const pop = document.createElement("div");
+  pop.className = "clock-cfg";
+  pop.innerHTML = `
+    <label class="cc"><input type="checkbox" data-k="analog"${cfg.analog?" checked":""}> Analog face</label>
+    <label class="cc"><input type="checkbox" data-k="seconds"${cfg.seconds?" checked":""}> Show seconds</label>
+    <label class="cc"><input type="checkbox" data-k="hour24"${cfg.hour24?" checked":""}> 24-hour time</label>
+    <label class="cc"><input type="checkbox" data-k="showTz"${cfg.showTz?" checked":""}> Show time zone</label>
+    <div class="cc-row"><span>Zone</span><select class="cc-zone">${clockZoneOptions(cfg.tz||"local")}</select></div>`;
+  el.appendChild(pop);
+  pop.querySelectorAll("input[data-k]").forEach(inp=>inp.addEventListener("change",()=>{
+    cfg[inp.dataset.k] = inp.checked; save(); loadClock(w, body);
+  }));
+  pop.querySelector(".cc-zone").addEventListener("change",e=>{
+    cfg.tz = e.target.value;
+    const tt = el.querySelector(".w-title .tt");
+    if(tt && e.target.value!=="local"){ w.title = zoneCity(e.target.value); tt.textContent = w.title; }
+    save(); loadClock(w, body);
+  });
+  const onDoc = ev=>{ if(pop.contains(ev.target) || ev.target.closest('[data-act="config"]')) return; closeClockPop(el, pop); };
+  pop.__onDoc = onDoc;
+  setTimeout(()=>document.addEventListener("pointerdown", onDoc), 0);
+}
+function closeClockPop(el, pop){ if(pop.__onDoc) document.removeEventListener("pointerdown", pop.__onDoc); pop.remove(); el.classList.remove("cfg-open"); }
 
 /* ---------- Search ---------- */
 function loadSearch(w, body){
@@ -1178,6 +1368,13 @@ function addFeed(title,url){
   state.widgets.push({id, type:"feed", title:title||"News", url:url||"", pos:firstFreeSpot(4,5), ai:newFeedAI()});
   save(); render();
 }
+function addClock(){
+  const id = "clock_"+(idSeq++)+"_"+Date.now().toString(36);
+  state.widgets.push({id, type:"clock", title:"Clock", pos:firstFreeSpot(4,2), clock:{tz:"local", seconds:false, hour24:false, analog:false, showTz:true}});
+  save(); render();
+}
+// Widget types that are multi-instance and toggled collectively by one checkbox.
+const COLLECTIVE = {news:"feed", clock:"clock"};
 function showUtil(type){
   const existing = state.widgets.find(x=>x.type===type);
   if(existing){ existing.hidden=false; }
@@ -1198,8 +1395,13 @@ function hideUtil(type){
    Settings panel
    ============================================================ */
 const overlay = $("#overlay");
-function openSettings(){ syncSettingsForm(); overlay.classList.add("open"); }
+function openSettings(){ syncSettingsForm(); selectTab("wc"); overlay.classList.add("open"); }
 function closeSettings(){ overlay.classList.remove("open"); }
+function selectTab(name){
+  document.querySelectorAll("#settingsTabs .tab").forEach(t=>t.classList.toggle("active", t.dataset.tab===name));
+  document.querySelectorAll(".tabpane").forEach(p=>p.classList.toggle("active", p.dataset.pane===name));
+}
+document.querySelectorAll("#settingsTabs .tab").forEach(tab=>tab.addEventListener("click",()=>selectTab(tab.dataset.tab)));
 
 function syncSettingsForm(){
   $("#locMode").value = state.location.mode;
@@ -1220,8 +1422,9 @@ function syncSettingsForm(){
   renderSwatches();
   renderBgSwatches();
   document.querySelectorAll("[data-util]").forEach(cb=>{
-    const w = state.widgets.find(x=>x.type===cb.dataset.util);
-    cb.checked = !!(w && !w.hidden);
+    const u = cb.dataset.util, ct = COLLECTIVE[u];
+    if(ct) cb.checked = state.widgets.some(w=>w.type===ct && !w.hidden);
+    else { const w = state.widgets.find(x=>x.type===u); cb.checked = !!(w && !w.hidden); }
   });
   renderFeedEditor();
 }
@@ -1326,6 +1529,7 @@ $("#addFeedBtn2").addEventListener("click",()=>{
   state.widgets.push({id:"feed_"+(idSeq++)+"_"+Date.now().toString(36), type:"feed", title:"New feed", url:"", pos:firstFreeSpot(4,5), ai:newFeedAI()});
   renderFeedEditor();
 });
+$("#addClockBtn").addEventListener("click",()=>{ addClock(); syncSettingsForm(); });
 $("#resetLayout").addEventListener("click",()=>{
   const d = defaultState();
   // keep user's feeds/settings, reset only positions to a tidy default where ids match
@@ -1363,7 +1567,13 @@ $("#saveSettings").addEventListener("click",()=>{
   state.theme.accent = $("#accentCustom").value || state.theme.accent;
   state.theme.bg = $("#bgCustom").value || state.theme.bg;
   document.querySelectorAll("[data-util]").forEach(cb=>{
-    if(cb.checked) showUtil(cb.dataset.util); else hideUtil(cb.dataset.util);
+    const u = cb.dataset.util, ct = COLLECTIVE[u];
+    if(ct){
+      if(cb.checked && ct==="clock" && !state.widgets.some(w=>w.type==="clock"))
+        state.widgets.push({id:"clock", type:"clock", title:"Clock", pos:firstFreeSpot(4,2), clock:{tz:"local",seconds:false,hour24:false,analog:false,showTz:false}});
+      state.widgets.forEach(w=>{ if(w.type===ct) w.hidden = !cb.checked; });
+    }
+    else if(cb.checked) showUtil(u); else hideUtil(u);
   });
   save(); applyTheme(); render(); closeSettings();
 });
