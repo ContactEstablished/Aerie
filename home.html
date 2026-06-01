@@ -234,6 +234,12 @@
   .feedrow{display:flex;gap:6px;margin-bottom:6px;align-items:center}
   .feedrow .t{width:34%}
   .feedrow .u{flex:1}
+  .feeditem{border:1px solid var(--border);border-radius:10px;padding:7px;margin-bottom:8px;background:rgba(255,255,255,0.02)}
+  .feeditem .feedrow{margin-bottom:6px}
+  .feeditem .feedrow:last-child{margin-bottom:0}
+  .fr-ai{align-items:center}
+  .fr-ai select{flex:1;min-width:0}
+  .ai-tag{font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--muted);background:rgba(255,255,255,0.06);border-radius:6px;padding:4px 7px;flex:0 0 auto}
   .swatches{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:10px}
   .swatch{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent;box-shadow:0 0 0 1px rgba(255,255,255,0.12) inset;transition:transform .08s}
   .swatch:hover{transform:scale(1.12)}
@@ -292,15 +298,16 @@
       </div>
 
       <div class="sec">
-        <h3>AI Summaries (DeepSeek)</h3>
-        <label class="chk"><input type="checkbox" id="aiEnabled"> Enhance feeds with AI — headline · 1-sentence summary · image</label>
-        <div class="row"><label>API key</label><input class="field" id="aiKey" type="password" placeholder="sk-..." autocomplete="off"><button class="btn danger" id="aiClear" type="button" style="flex:0 0 auto">Clear key</button></div>
+        <h3>AI Summaries</h3>
+        <label class="chk"><input type="checkbox" id="aiEnabled"> Enhance feeds with AI — set a <b>provider &amp; model per feed</b> in News Feeds above</label>
+        <div class="row"><label>DeepSeek key</label><input class="field" id="key_deepseek" type="password" placeholder="sk-..." autocomplete="off"><button class="btn danger" data-clearkey="deepseek" type="button" style="flex:0 0 auto">Clear</button></div>
+        <div class="row"><label>OpenAI key</label><input class="field" id="key_openai" type="password" placeholder="sk-..." autocomplete="off"><button class="btn danger" data-clearkey="openai" type="button" style="flex:0 0 auto">Clear</button></div>
+        <div class="row"><label>Anthropic key</label><input class="field" id="key_anthropic" type="password" placeholder="sk-ant-..." autocomplete="off"><button class="btn danger" data-clearkey="anthropic" type="button" style="flex:0 0 auto">Clear</button></div>
         <div class="row">
           <label>Articles / feed</label><input class="field" id="aiCount" type="number" min="1" max="15" style="flex:0 0 auto;max-width:84px">
           <label style="min-width:auto">Cache (min)</label><input class="field" id="aiCache" type="number" min="1" max="240" style="flex:0 0 auto;max-width:84px">
         </div>
-        <div class="row"><label>Model</label><input class="field" id="aiModel" placeholder="deepseek-chat"></div>
-        <div class="smallnote">Get a key at <code>platform.deepseek.com</code>. It's stored only in this browser and sent directly to <code>api.deepseek.com</code> — never to anyone else. Each feed makes 1 AI call per refresh; results are cached for the minutes above (default 30), so a page reload within that window costs nothing.</div>
+        <div class="smallnote">Keys live only in this browser and are sent directly to each provider — DeepSeek (<code>platform.deepseek.com</code>), OpenAI (<code>platform.openai.com</code>), Anthropic (<code>console.anthropic.com</code>). Each feed = 1 call per refresh, cached for the minutes above.</div>
       </div>
 
       <div class="sec">
@@ -377,6 +384,35 @@ const PROXIES = [
   "https://api.codetabs.com/v1/proxy/?quest="
 ];
 
+/* ---------- AI providers (all callable directly from the browser) ---------- */
+const AI_PROVIDERS = [
+  {id:"off",       label:"Off (headlines only)"},
+  {id:"deepseek",  label:"DeepSeek"},
+  {id:"openai",    label:"OpenAI"},
+  {id:"anthropic", label:"Anthropic"}
+];
+const PROVIDER_LABEL = {deepseek:"DeepSeek", openai:"OpenAI", anthropic:"Anthropic"};
+const MODEL_OPTIONS = {
+  deepseek:  ["deepseek-chat","deepseek-reasoner"],
+  openai:    ["gpt-4o-mini","gpt-4.1-mini","gpt-4o","gpt-4.1"],
+  anthropic: ["claude-haiku-4-5-20251001","claude-sonnet-4-6","claude-opus-4-8"]
+};
+const DEFAULT_MODELS = {deepseek:"deepseek-chat", openai:"gpt-4o-mini", anthropic:"claude-haiku-4-5-20251001"};
+// Resolve a feed's effective AI config, or null if it should stay a plain headline list.
+function feedAIConfig(w){
+  if(!state.ai || !state.ai.enabled) return null;
+  const cfg = w.ai || {};
+  const p = cfg.provider;
+  if(!p || p==="off") return null;
+  const key = (state.ai.keys||{})[p];
+  if(!key) return null;
+  return {provider:p, model: cfg.model || DEFAULT_MODELS[p], key};
+}
+function firstKeyedProvider(){
+  const k = (state.ai && state.ai.keys) || {};
+  return k.deepseek ? "deepseek" : k.openai ? "openai" : k.anthropic ? "anthropic" : "off";
+}
+
 /* ---------- default state ---------- */
 function defaultState(){
   return {
@@ -384,13 +420,13 @@ function defaultState(){
     units:"us",
     location:{mode:"ip", city:""},
     art:{source:"fstoppers"},
-    ai:{enabled:true, apiKey:"", model:"deepseek-chat", itemsPerFeed:5, cacheMinutes:30},
+    ai:{enabled:true, itemsPerFeed:5, cacheMinutes:30, keys:{deepseek:"", openai:"", anthropic:""}},
     theme:{accent:"#5b8cff", bg:"#0b0f1a"},
     proxy:PROXIES[0],
     widgets:[
-      {id:"cnn",   type:"feed", title:"CNN",        url:"http://rss.cnn.com/rss/cnn_topstories.rss",      pos:{c:0,r:0,w:4,h:6}},
-      {id:"bbc",   type:"feed", title:"BBC",        url:"http://feeds.bbci.co.uk/news/world/rss.xml",      pos:{c:4,r:0,w:4,h:6}},
-      {id:"verge", type:"feed", title:"The Verge",  url:"https://www.theverge.com/rss/index.xml",          pos:{c:0,r:6,w:8,h:3}},
+      {id:"cnn",   type:"feed", title:"CNN",        url:"http://rss.cnn.com/rss/cnn_topstories.rss",      pos:{c:0,r:0,w:4,h:6}, ai:{provider:"deepseek", model:"deepseek-chat"}},
+      {id:"bbc",   type:"feed", title:"BBC",        url:"http://feeds.bbci.co.uk/news/world/rss.xml",      pos:{c:4,r:0,w:4,h:6}, ai:{provider:"deepseek", model:"deepseek-chat"}},
+      {id:"verge", type:"feed", title:"The Verge",  url:"https://www.theverge.com/rss/index.xml",          pos:{c:0,r:6,w:8,h:3}, ai:{provider:"deepseek", model:"deepseek-chat"}},
       {id:"weather",type:"weather", title:"Weather", pos:{c:8,r:0,w:4,h:3}},
       {id:"clock",  type:"clock",   title:"Clock",   pos:{c:8,r:3,w:4,h:2}},
       {id:"art",    type:"art",     title:"Photo of the Day", pos:{c:8,r:5,w:4,h:4}}
@@ -432,6 +468,20 @@ function migrate(s){
   if(s.__v < 5){
     if(!s.theme) s.theme = {accent:"#5b8cff", bg:"#0b0f1a"}; else s.theme.bg ??= "#0b0f1a";
     s.__v = 5;
+  }
+  if(s.__v < 6){
+    // single-provider DeepSeek config -> multi-provider keys + per-feed provider/model
+    const old = s.ai || {};
+    const oldKey = old.apiKey || (old.keys && old.keys.deepseek) || "";
+    const oldModel = old.model || "deepseek-chat";
+    s.ai = {
+      enabled: old.enabled ?? true,
+      itemsPerFeed: old.itemsPerFeed ?? 5,
+      cacheMinutes: old.cacheMinutes ?? 30,
+      keys: { deepseek: oldKey, openai: "", anthropic: "" }
+    };
+    (s.widgets||[]).forEach(w=>{ if(w.type==="feed" && !w.ai) w.ai = { provider: oldKey ? "deepseek" : "off", model: oldModel }; });
+    s.__v = 6;
   }
 }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
@@ -653,18 +703,20 @@ async function loadFeed(w, body){
     body.innerHTML = `<div class="state"><div>No feed URL set.</div><div class="keyhint" style="margin:0">Add an RSS/Atom URL for “${esc(w.title||"this feed")}” in ⚙ Settings, or remove it.</div></div>`;
     return;
   }
-  const ai = state.ai || {};
-  if(ai.enabled && ai.apiKey) return loadFeedAI(w, body);
-  return loadFeedClassic(w, body, ai.enabled && !ai.apiKey);
+  const ai = feedAIConfig(w);
+  if(ai) return loadFeedAI(w, body, ai);
+  const p = w.ai && w.ai.provider;
+  const needKey = state.ai && state.ai.enabled && p && p!=="off" && !((state.ai.keys||{})[p]);
+  return loadFeedClassic(w, body, needKey ? p : null);
 }
 
 // Plain numbered headline list (no key / AI disabled).
-async function loadFeedClassic(w, body, wantKeyHint){
+async function loadFeedClassic(w, body, needKeyProvider){
   body.innerHTML = loadingHTML;
   try{
     const items = await parseFeedItems(w.url, 12);
     body.innerHTML =
-      (wantKeyHint ? `<div class="keyhint">Add a DeepSeek API key in ⚙ Settings to turn these into AI-summarized cards with images.</div>` : "") +
+      (needKeyProvider ? `<div class="keyhint">Add your ${esc(PROVIDER_LABEL[needKeyProvider]||"AI")} API key in ⚙ Settings to turn this feed into AI cards.</div>` : "") +
       `<ul class="feed-list">${
         items.map((x,i)=>`<li class="feed-item"><a href="${esc(x.link)}" target="_blank" rel="noopener">
           <span class="num">${i+1}</span>${esc(x.title)}
@@ -723,17 +775,18 @@ function pickRSSImage(it){
 }
 
 /* ---- AI-enhanced feed (DeepSeek) ---- */
-async function loadFeedAI(w, body){
-  const ai = state.ai;
+async function loadFeedAI(w, body, ai){
+  const count = state.ai.itemsPerFeed;
   const cache = readFeedCache(w.id);
-  const fresh = cache && cache.url===w.url && cache.count===ai.itemsPerFeed
-             && (Date.now()-cache.ts) < (ai.cacheMinutes||30)*60000;
-  if(fresh) return renderForYou(w, body, cache.items, cache.ts);           // < cacheMinutes old: no network at all
+  const fresh = cache && cache.url===w.url && cache.count===count
+             && cache.provider===ai.provider && cache.model===ai.model
+             && (Date.now()-cache.ts) < (state.ai.cacheMinutes||30)*60000;
+  if(fresh) return renderForYou(w, body, cache.items, cache.ts);           // within cache window: no network at all
 
-  body.innerHTML = `<div class="state"><div class="spinner"></div><div>Reading articles &amp; summarizing with DeepSeek…</div></div>`;
+  body.innerHTML = `<div class="state"><div class="spinner"></div><div>Reading articles &amp; summarizing with ${esc(PROVIDER_LABEL[ai.provider]||"AI")}…</div></div>`;
   try{
-    const items = await buildAIFeed(w, ai.itemsPerFeed);
-    writeFeedCache(w.id, {ts:Date.now(), url:w.url, count:ai.itemsPerFeed, items});
+    const items = await buildAIFeed(w, count, ai);
+    writeFeedCache(w.id, {ts:Date.now(), url:w.url, count, provider:ai.provider, model:ai.model, items});
     renderForYou(w, body, items, Date.now());
   }catch(e){
     if(cache) renderForYou(w, body, cache.items, cache.ts);                // show stale rather than nothing
@@ -741,7 +794,7 @@ async function loadFeedAI(w, body){
   }
 }
 
-async function buildAIFeed(w, count){
+async function buildAIFeed(w, count, ai){
   const items = await parseFeedItems(w.url, count);
   // Visit each article (best effort) for its representative image + real text.
   await mapLimit(items, 4, async it=>{
@@ -753,8 +806,8 @@ async function buildAIFeed(w, count){
       it.text = pickArticleText(adoc) || stripHtml(it.desc);
     }catch(e){ it.text = stripHtml(it.desc); }
   });
-  // One batched DeepSeek call for all items in this feed.
-  const summaries = await deepseekSummarize(items.map(it=>({
+  // One batched call to the feed's chosen provider for all its items.
+  const summaries = await aiSummarize(ai, items.map(it=>({
     title: it.title,
     content: (it.text || "").replace(/\s+/g," ").trim().slice(0,1400)
   })));
@@ -786,27 +839,63 @@ function pickArticleText(doc){
 function absUrl(u, base){ try{ return new URL(u, base).href; }catch(e){ return u; } }
 function stripHtml(s){ try{ return new DOMParser().parseFromString(String(s||""),"text/html").body.textContent.replace(/\s+/g," ").trim(); }catch(e){ return String(s||""); } }
 
-async function deepseekSummarize(articles){
+const SUMMARY_SYS = "You are a concise news editor. For each article in the input JSON array, write ONE factual, "
+  + "non-clickbait sentence (max 22 words) capturing the key point. No markdown. "
+  + 'Respond ONLY with JSON shaped exactly as {"summaries":["...","..."]}, in the same order as the input.';
+
+// Summarize via the feed's chosen provider. `ai` = {provider, model, key}.
+async function aiSummarize(ai, articles){
   if(!articles.length) return [];
-  const sys = "You are a concise news editor. For each article in the input JSON array, write ONE factual, "
-    + "non-clickbait sentence (max 22 words) capturing the key point. No markdown. "
-    + 'Respond ONLY with JSON shaped exactly as {"summaries":["...","..."]}, in the same order as the input.';
-  const reqBody = {
-    model: state.ai.model || "deepseek-chat",
-    messages: [{role:"system",content:sys},{role:"user",content:JSON.stringify(articles)}],
-    response_format:{type:"json_object"},
-    temperature:0.2,
-    max_tokens: Math.min(2000, 70*articles.length + 120)
-  };
-  const r = await fetchWithTimeout("https://api.deepseek.com/chat/completions", 60000, {
-    method:"POST",
-    headers:{"Content-Type":"application/json","Authorization":"Bearer "+state.ai.apiKey},
-    body: JSON.stringify(reqBody)
-  });
-  if(!r.ok){ const t=await r.text().catch(()=>""); throw new Error("DeepSeek "+r.status+(t?": "+t.slice(0,160):"")); }
-  const j = await r.json();
-  const content = j.choices?.[0]?.message?.content || "{}";
-  let parsed; try{ parsed=JSON.parse(content); }catch(e){ const m=content.match(/\[[\s\S]*\]/); parsed = m?{summaries:JSON.parse(m[0])}:{}; }
+  const maxTok = Math.min(2000, 70*articles.length + 120);
+  const user = JSON.stringify(articles);
+  const label = PROVIDER_LABEL[ai.provider] || ai.provider;
+  let content;
+
+  if(ai.provider === "anthropic"){
+    // Anthropic Messages API — requires the direct-browser-access opt-in header for CORS.
+    const r = await fetchWithTimeout("https://api.anthropic.com/v1/messages", 60000, {
+      method:"POST",
+      headers:{
+        "content-type":"application/json",
+        "x-api-key": ai.key,
+        "anthropic-version":"2023-06-01",
+        "anthropic-dangerous-direct-browser-access":"true"
+      },
+      body: JSON.stringify({
+        model: ai.model,
+        max_tokens: maxTok,
+        system: SUMMARY_SYS + " Output only the JSON object, nothing else.",
+        messages:[{role:"user", content:user}]
+      })
+    });
+    if(!r.ok){ const t=await r.text().catch(()=>""); throw new Error(label+" "+r.status+(t?": "+aiErr(t):"")); }
+    const j = await r.json();
+    content = (j.content || []).map(b=>b.text||"").join("") || "{}";
+  } else {
+    // OpenAI-compatible chat completions (OpenAI + DeepSeek)
+    const endpoint = ai.provider==="openai"
+      ? "https://api.openai.com/v1/chat/completions"
+      : "https://api.deepseek.com/chat/completions";
+    const r = await fetchWithTimeout(endpoint, 60000, {
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+ai.key},
+      body: JSON.stringify({
+        model: ai.model,
+        messages:[{role:"system",content:SUMMARY_SYS},{role:"user",content:user}],
+        response_format:{type:"json_object"},
+        temperature:0.2,
+        max_tokens: maxTok
+      })
+    });
+    if(!r.ok){ const t=await r.text().catch(()=>""); throw new Error(label+" "+r.status+(t?": "+aiErr(t):"")); }
+    const j = await r.json();
+    content = j.choices?.[0]?.message?.content || "{}";
+  }
+  return parseSummaries(content);
+}
+function aiErr(t){ try{ const j=JSON.parse(t); return (j.error && (j.error.message||j.error.type)) || t.slice(0,160); }catch(e){ return t.slice(0,160); } }
+function parseSummaries(content){
+  let parsed; try{ parsed=JSON.parse(content); }catch(e){ const m=String(content).match(/\[[\s\S]*\]/); parsed = m?{summaries:JSON.parse(m[0])}:{}; }
   return Array.isArray(parsed) ? parsed : (parsed.summaries || parsed.result || []);
 }
 
@@ -1083,9 +1172,10 @@ function firstFreeSpot(w,h){
       if(!occ(c,r)) return {c,r,w,h};
   return {c:0,r:0,w,h};
 }
+function newFeedAI(){ const p = firstKeyedProvider(); return {provider:p, model: DEFAULT_MODELS[p] || DEFAULT_MODELS.deepseek}; }
 function addFeed(title,url){
   const id = "feed_"+(idSeq++)+"_"+Date.now().toString(36);
-  state.widgets.push({id, type:"feed", title:title||"News", url:url||"", pos:firstFreeSpot(4,5)});
+  state.widgets.push({id, type:"feed", title:title||"News", url:url||"", pos:firstFreeSpot(4,5), ai:newFeedAI()});
   save(); render();
 }
 function showUtil(type){
@@ -1119,10 +1209,12 @@ function syncSettingsForm(){
   $("#artSrc").value = state.art.source;
   $("#proxy").value = state.proxy;
   $("#aiEnabled").checked = !!state.ai.enabled;
-  $("#aiKey").value = state.ai.apiKey || "";
+  const keys = state.ai.keys || {};
+  $("#key_deepseek").value = keys.deepseek || "";
+  $("#key_openai").value = keys.openai || "";
+  $("#key_anthropic").value = keys.anthropic || "";
   $("#aiCount").value = state.ai.itemsPerFeed || 5;
   $("#aiCache").value = state.ai.cacheMinutes || 30;
-  $("#aiModel").value = state.ai.model || "deepseek-chat";
   $("#accentCustom").value = state.theme.accent || "#5b8cff";
   $("#bgCustom").value = state.theme.bg || "#0b0f1a";
   renderSwatches();
@@ -1170,20 +1262,45 @@ function setBg(hex){               // live preview; persisted on Save
 function renderFeedEditor(){
   const box = $("#feedEditor"); box.innerHTML="";
   state.widgets.filter(w=>w.type==="feed").forEach(w=>{
-    const row = document.createElement("div");
-    row.className="feedrow";
-    row.innerHTML = `
-      <input class="field t" value="${esc(w.title)}" placeholder="Name">
-      <input class="field u" value="${esc(w.url)}" placeholder="RSS / Atom URL">
-      <button class="w-btn" title="Remove">✕</button>`;
-    const [t,u] = row.querySelectorAll("input");
+    if(!w.ai) w.ai = {provider:"off", model:DEFAULT_MODELS.deepseek};
+    const item = document.createElement("div");
+    item.className="feeditem";
+    const provOpts = AI_PROVIDERS.map(p=>`<option value="${p.id}"${w.ai.provider===p.id?" selected":""}>${p.label}</option>`).join("");
+    item.innerHTML = `
+      <div class="feedrow">
+        <input class="field t" value="${esc(w.title)}" placeholder="Name">
+        <input class="field u" value="${esc(w.url)}" placeholder="RSS / Atom URL">
+        <button class="w-btn" title="Remove feed">✕</button>
+      </div>
+      <div class="feedrow fr-ai">
+        <span class="ai-tag">AI</span>
+        <select class="field prov">${provOpts}</select>
+        <select class="field model"></select>
+      </div>`;
+    const t=item.querySelector(".t"), u=item.querySelector(".u"), prov=item.querySelector(".prov"), model=item.querySelector(".model");
+    function fillModels(){
+      const p = w.ai.provider;
+      if(p==="off"){ model.innerHTML="<option value=''>—</option>"; model.disabled=true; return; }
+      model.disabled=false;
+      let opts = (MODEL_OPTIONS[p]||[]).slice();
+      if(!w.ai.model) w.ai.model = DEFAULT_MODELS[p];
+      if(w.ai.model && !opts.includes(w.ai.model)) opts = [w.ai.model, ...opts];   // keep a custom/legacy model visible
+      model.innerHTML = opts.map(m=>`<option value="${esc(m)}"${m===w.ai.model?" selected":""}>${esc(m)}</option>`).join("");
+    }
     t.addEventListener("input",()=>{ w.title=t.value; });
     u.addEventListener("input",()=>{ w.url=u.value; });
-    row.querySelector("button").addEventListener("click",()=>{
+    prov.addEventListener("change",()=>{
+      w.ai.provider = prov.value;
+      if(w.ai.provider!=="off" && !(MODEL_OPTIONS[w.ai.provider]||[]).includes(w.ai.model)) w.ai.model = DEFAULT_MODELS[w.ai.provider];
+      fillModels();
+    });
+    model.addEventListener("change",()=>{ w.ai.model = model.value; });
+    item.querySelector(".w-btn").addEventListener("click",()=>{
       state.widgets = state.widgets.filter(x=>x!==w);
       renderFeedEditor();
     });
-    box.appendChild(row);
+    fillModels();
+    box.appendChild(item);
   });
 }
 
@@ -1193,15 +1310,20 @@ $("#locMode").addEventListener("change",e=>{
 $("#settingsBtn").addEventListener("click",openSettings);
 $("#accentCustom").addEventListener("input",e=>setAccent(e.target.value));
 $("#bgCustom").addEventListener("input",e=>setBg(e.target.value));
-$("#aiClear").addEventListener("click",()=>{
-  $("#aiKey").value=""; state.ai.apiKey="";
-  try{ localStorage.removeItem("myhome.feeds"); }catch(e){}   // feeds drop back to classic list
-  save(); render();
+document.querySelectorAll("[data-clearkey]").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    const p = btn.dataset.clearkey;
+    if(!state.ai.keys) state.ai.keys = {};
+    state.ai.keys[p] = "";
+    const inp = $("#key_"+p); if(inp) inp.value="";
+    try{ localStorage.removeItem("myhome.feeds"); }catch(e){}   // feeds using this provider drop back to classic
+    save(); render();
+  });
 });
 $("#closeSettings").addEventListener("click",()=>{ state=load(); applyTheme(); closeSettings(); render(); });
 $("#addFeedBtn").addEventListener("click",()=>{ addFeed("New feed",""); openSettings(); });
 $("#addFeedBtn2").addEventListener("click",()=>{
-  state.widgets.push({id:"feed_"+(idSeq++)+"_"+Date.now().toString(36), type:"feed", title:"New feed", url:"", pos:firstFreeSpot(4,5)});
+  state.widgets.push({id:"feed_"+(idSeq++)+"_"+Date.now().toString(36), type:"feed", title:"New feed", url:"", pos:firstFreeSpot(4,5), ai:newFeedAI()});
   renderFeedEditor();
 });
 $("#resetLayout").addEventListener("click",()=>{
@@ -1224,14 +1346,18 @@ $("#saveSettings").addEventListener("click",()=>{
   state.units = $("#units").value;
   state.art.source = $("#artSrc").value;
   const px = $("#proxy").value.trim(); if(px) state.proxy = px;
-  // AI settings — if anything that affects feed content changed, drop the feed caches so they rebuild
-  const prevKey=state.ai.apiKey, prevEnabled=state.ai.enabled, prevCount=state.ai.itemsPerFeed, prevModel=state.ai.model;
+  // AI settings — if anything that affects feed content changed, drop the feed caches so they rebuild.
+  // (Per-feed provider/model are mutated live; the feed cache also keys on provider+model so those self-invalidate.)
+  const prevKeys=JSON.stringify(state.ai.keys||{}), prevEnabled=state.ai.enabled, prevCount=state.ai.itemsPerFeed;
   state.ai.enabled = $("#aiEnabled").checked;
-  state.ai.apiKey = $("#aiKey").value.trim();
+  state.ai.keys = {
+    deepseek: $("#key_deepseek").value.trim(),
+    openai: $("#key_openai").value.trim(),
+    anthropic: $("#key_anthropic").value.trim()
+  };
   state.ai.itemsPerFeed = clamp(parseInt($("#aiCount").value,10)||5, 1, 15);
   state.ai.cacheMinutes = clamp(parseInt($("#aiCache").value,10)||30, 1, 240);
-  state.ai.model = $("#aiModel").value.trim() || "deepseek-chat";
-  if(prevKey!==state.ai.apiKey || prevEnabled!==state.ai.enabled || prevCount!==state.ai.itemsPerFeed || prevModel!==state.ai.model){
+  if(prevKeys!==JSON.stringify(state.ai.keys) || prevEnabled!==state.ai.enabled || prevCount!==state.ai.itemsPerFeed){
     try{ localStorage.removeItem("myhome.feeds"); }catch(e){}
   }
   state.theme.accent = $("#accentCustom").value || state.theme.accent;
