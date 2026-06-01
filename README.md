@@ -69,7 +69,7 @@ Everything is **configurable from a Settings panel** and **persists in your brow
 - 🧩 **Drag‑and‑drop grid** — move widgets by their header, resize from the corner; everything **snaps to an invisible grid**.
 - 🤖 **AI‑summarized news (optional)** — bring your own **DeepSeek, OpenAI, or Anthropic** key and feeds turn into rich "For You" cards: headline, one‑sentence summary, and a representative image pulled from the article. Pick the **provider and model per feed**.
 - 📰 **Any RSS/Atom feed** — CNN, BBC, and The Verge ship as defaults; add, edit, or remove any feed you like.
-- 🌤️ **Local weather, no API key** — auto‑locates you by IP (or set a city / use GPS), powered by Open‑Meteo.
+- 🌤️ **Local weather, no API key** — auto‑locates you by IP (or set a city / use GPS), powered by Open‑Meteo. Add **multiple cards for multiple cities**.
 - 🖼️ **Photo of the Day** — Fstoppers' editor‑picked photo by default, or a random masterpiece from the Art Institute of Chicago or The Met.
 - 🎨 **Fully themeable** — independent **accent** and **background** color pickers, themed scrollbars, and a subtle layered gradient + watermark for depth.
 - ⏱️ **Smart caching** — feeds cache for 30 minutes, the photo caches for the day, weather shows the last‑known reading instantly while it refreshes.
@@ -82,13 +82,14 @@ Everything is **configurable from a Settings panel** and **persists in your brow
 
 ### Weather
 - Powered by **[Open‑Meteo](https://open-meteo.com/)** — free, no API key.
-- **Location** is resolved one of four ways (configurable):
+- **Multiple weather cards** — add a card per city. Use **＋ Add weather** in Settings, then set each card's location independently from its **⚙** button.
+- Each card resolves its **location** one of three ways:
   - **Auto (by IP)** — default; no permission prompt. Tries `ipwho.is`, then `geojs.io`, then `ipapi.co` for resilience.
-  - **City** — type a city; geocoded via Open‑Meteo's geocoding API.
+  - **City** — type a city; geocoded via Open‑Meteo's geocoding API. City cards auto‑title to the city name.
   - **Precise (GPS)** — uses the browser's geolocation (asks permission).
 - Shows current temperature, condition (with emoji), "feels like," daily high/low, humidity, and wind.
-- **Units**: Fahrenheit · mph, or Celsius · km/h.
-- The **last successful reading is cached** and shown instantly on load (marked *offline* if a refresh fails), so you're never staring at a spinner.
+- **Units** (Fahrenheit · mph, or Celsius · km/h) are a single global setting applied to every card.
+- The **last successful reading is cached per card** and shown instantly on load (marked *offline* if a refresh fails), so you're never staring at a spinner.
 
 ### News Feeds
 - Reads **any RSS or Atom feed**. Defaults: **CNN Top Stories**, **BBC World**, **The Verge**.
@@ -181,7 +182,7 @@ Click **⚙ Settings** (top‑right) to open the configuration modal. Changes pr
 
 | Section | What you can configure |
 | --- | --- |
-| **Weather & Location** | Location mode (Auto‑IP / City / GPS), city name, and units (°F·mph or °C·km/h). |
+| **Weather** | Units (°F·mph or °C·km/h), show/hide, and **＋ Add weather** for more cities. Each card's location (Auto‑IP / City / GPS) is set from its **⚙**. |
 | **News Feeds** | Add, rename, re‑URL, or remove feeds. Each feed becomes its own widget. |
 | **AI Summaries** | Enable AI cards; paste/clear a **DeepSeek / OpenAI / Anthropic** key; set **articles per feed** and **cache minutes**. (Provider & model are chosen per feed in **News Feeds**.) |
 | **Photo of the Day** | Source: Fstoppers POTD, Art Institute of Chicago, or The Met. |
@@ -281,9 +282,9 @@ Aerie stores everything client‑side. Keys used in `localStorage`:
 
 | Key | Contents | Refresh policy |
 | --- | --- | --- |
-| `myhome.v1` | Main state: layout, widgets, feeds (incl. per‑feed AI provider/model), units, theme, AI settings (incl. provider API keys), proxy. Versioned via `__v` (currently **8**). | On every change |
+| `myhome.v1` | Main state: layout, widgets, feeds (incl. per‑feed AI provider/model), per‑weather‑card location, units, theme, AI settings (incl. provider API keys), proxy. Versioned via `__v` (currently **9**). | On every change |
 | `myhome.feeds` | Built AI "For You" results per feed. | Older than the AI **cache minutes** (default 30) |
-| `myhome.wx` | Last successful weather reading + resolved location. | On each successful fetch |
+| `myhome.wx` | Last successful weather reading per card (keyed by widget id). | On each successful fetch |
 | `myhome.potd` | The day's photo (per source). | New local day, or manual ⟳ |
 
 To wipe everything and start fresh: **Settings → Advanced → Reset everything** (or clear the site's storage in DevTools).

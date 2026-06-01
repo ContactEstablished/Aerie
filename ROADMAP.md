@@ -18,9 +18,10 @@ _Last updated: 2026-06-01_
 - [x] Photo of the Day — Fstoppers POTD / Art Institute / The Met, cached per day
 - [x] Clock & optional search widget
 - [x] **Search upgrades** — built-in engine selector (Google / Bing / Yahoo) + a custom search-URL option (Dogpile, etc.) set from the card's ⚙; fits cleanly in a 1-row-tall card
+- [x] **Multiple weather cards** — one card per city, each with its own location (Auto-IP / city / GPS) set from the card's ⚙; collective show/hide + per-card cache; units stay global
 - [x] Theming — accent color **and** background base color pickers, themed scrollbars
 - [x] Aerie branding — favicon, toolbar logo + wordmark, line-art watermark
-- [x] Settings persistence + schema migrations (currently `__v: 8`)
+- [x] Settings persistence + schema migrations (currently `__v: 9`)
 - [x] **Tabbed Settings menu** — Weather & Clock · News Feeds · Photo of the Day · Colors · AI Settings · Advanced; widget show/hide toggles relocated into their tabs + collective "News" show/hide
 - [x] **Clock upgrades** — per-card ⚙ config (analog/digital, show seconds, 24-hour, time zone + subtle tz label), multiple clocks each with its own zone, collective show/hide
 - [x] README
@@ -39,9 +40,6 @@ _Last updated: 2026-06-01_
 - [ ] **Hide Photo of the Day** toggle (Settings)
 - [ ] Header **shuffle button** — pick a random photo from the **last 14 days** of the chosen provider; a **reset** button returns to today's pick
   - _Keeps current behavior: first load of the day shows "today's" photo._
-
-### Weather
-- [ ] **Multiple weather cards** — several cities at once
 
 ### Feeds (carried over)
 - [ ] **Better Reddit RSS image support** — Reddit `.rss` is Atom; the post image lives in the `<content>` HTML and/or `media:thumbnail`, which the current extractor misses. Fix is in the **image-extraction code** (`pickRSSImage` / rss2json mapping / `pickOgImage`), not the AI prompt (the AI only gets text and returns summaries — it never fetches images). Parse `<content>`/`media:thumbnail`, and for Reddit map `preview.redd.it` / `i.redd.it` links. Example feed: `https://www.reddit.com/r/coolgithubprojects.rss`

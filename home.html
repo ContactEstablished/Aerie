@@ -160,6 +160,15 @@
   .wx-loc{font-size:13px;color:var(--text);font-weight:600;display:flex;align-items:center;gap:6px}
   .wx-stats{display:flex;flex-wrap:wrap;gap:10px 18px;margin-top:6px;color:var(--muted);font-size:12.5px}
   .wx-stats b{color:var(--text);font-weight:600}
+  /* weather location popover (per-card) — mirrors .clock-cfg */
+  .weather-cfg{position:absolute;top:42px;right:8px;z-index:40;width:224px;
+    background:var(--card-solid);border:1px solid var(--border);border-radius:12px;
+    box-shadow:0 16px 44px rgba(0,0,0,0.55);padding:11px;display:flex;flex-direction:column;gap:8px}
+  .weather-cfg .cc-row{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--muted)}
+  .weather-cfg select,.weather-cfg input{background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:6px 8px;font-size:12.5px;outline:none}
+  .weather-cfg .wx-mode{flex:1;min-width:0;cursor:pointer}
+  .weather-cfg .wx-city{width:100%}
+  .weather-cfg select:focus,.weather-cfg input:focus{border-color:var(--accent)}
 
   /* ---------- Art ---------- */
   .art{height:100%;display:flex;flex-direction:column}
@@ -338,16 +347,7 @@
         <!-- Weather & Clock -->
         <div class="tabpane active" data-pane="wc">
           <div class="sec">
-            <h3>Weather &amp; Location</h3>
-            <div class="row">
-              <label>Location</label>
-              <select class="field" id="locMode">
-                <option value="ip">Auto (by IP)</option>
-                <option value="city">Enter a city</option>
-                <option value="gps">Precise (GPS)</option>
-              </select>
-              <input class="field" id="locCity" placeholder="e.g. Denver, CO" style="display:none">
-            </div>
+            <h3>Weather</h3>
             <div class="row">
               <label>Units</label>
               <select class="field" id="units">
@@ -355,10 +355,12 @@
                 <option value="metric">Celsius · km/h</option>
               </select>
             </div>
+            <label class="chk"><input type="checkbox" data-util="weather"> Weather</label>
+            <button class="btn" id="addWeatherBtn" style="margin-top:6px">＋ Add weather</button>
+            <div class="smallnote">Add a weather card for another city. Set each card's location — Auto (by IP), a city, or precise GPS — with the ⚙ button in its card header. Units apply to all cards.</div>
           </div>
           <div class="sec">
-            <h3>Show / Hide</h3>
-            <label class="chk"><input type="checkbox" data-util="weather"> Weather</label>
+            <h3>Clocks</h3>
             <label class="chk"><input type="checkbox" data-util="clock"> Clocks</label>
             <button class="btn" id="addClockBtn" style="margin-top:6px">＋ Add clock</button>
             <div class="smallnote">Add a clock for another time zone. Configure each clock — analog/digital, seconds, 24-hour, zone — with the ⚙ button in its card header.</div>
@@ -510,7 +512,6 @@ function defaultState(){
   return {
     grid:{cols:12, rows:9},
     units:"us",
-    location:{mode:"ip", city:""},
     art:{source:"fstoppers"},
     ai:{enabled:true, itemsPerFeed:5, cacheMinutes:30, keys:{deepseek:"", openai:"", anthropic:""}},
     theme:{accent:"#5b8cff", bg:"#0b0f1a"},
@@ -519,7 +520,7 @@ function defaultState(){
       {id:"cnn",   type:"feed", title:"CNN",        url:"http://rss.cnn.com/rss/cnn_topstories.rss",      pos:{c:0,r:0,w:4,h:6}, ai:{provider:"deepseek", model:"deepseek-chat"}},
       {id:"bbc",   type:"feed", title:"BBC",        url:"http://feeds.bbci.co.uk/news/world/rss.xml",      pos:{c:4,r:0,w:4,h:6}, ai:{provider:"deepseek", model:"deepseek-chat"}},
       {id:"verge", type:"feed", title:"The Verge",  url:"https://www.theverge.com/rss/index.xml",          pos:{c:0,r:6,w:8,h:3}, ai:{provider:"deepseek", model:"deepseek-chat"}},
-      {id:"weather",type:"weather", title:"Weather", pos:{c:8,r:0,w:4,h:3}},
+      {id:"weather",type:"weather", title:"Weather", pos:{c:8,r:0,w:4,h:3}, weather:{mode:"ip", city:""}},
       {id:"clock",  type:"clock",   title:"Clock",   pos:{c:8,r:3,w:4,h:2}, clock:{tz:"local", seconds:false, hour24:false, analog:false, showTz:false}},
       {id:"art",    type:"art",     title:"Photo of the Day", pos:{c:8,r:5,w:4,h:4}}
     ]
@@ -583,6 +584,13 @@ function migrate(s){
     (s.widgets||[]).forEach(w=>{ if(w.type==="search" && !w.search) w.search = {engine:"google", customUrl:""}; });
     s.__v = 8;
   }
+  if(s.__v < 9){
+    // weather location moves from a single global setting to per-card config (multi-city)
+    const L = s.location || {};
+    (s.widgets||[]).forEach(w=>{ if(w.type==="weather" && !w.weather) w.weather = {mode:L.mode||"ip", city:L.city||""}; });
+    try{ localStorage.removeItem("myhome.wx"); }catch(e){}   // cache is now keyed per widget
+    s.__v = 9;
+  }
 }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 
@@ -640,13 +648,14 @@ function render(){
     el.dataset.id = w.id;
     applyPos(el,w);
 
-    const removable = (w.type==="feed" || w.type==="clock");
+    const removable = (w.type==="feed" || w.type==="clock" || w.type==="weather");
     const closeIcon = removable ? "✕" : "–";
-    const closeTitle = w.type==="feed" ? "Remove feed" : w.type==="clock" ? "Remove clock" : "Hide widget";
+    const closeTitle = w.type==="feed" ? "Remove feed" : w.type==="clock" ? "Remove clock" : w.type==="weather" ? "Remove weather" : "Hide widget";
     const refreshBtn = (w.type==="feed"||w.type==="art"||w.type==="weather")
       ? `<button class="w-btn" data-act="refresh" title="Refresh">⟳</button>` : "";
-    const configBtn = (w.type==="clock" || w.type==="search")
-      ? `<button class="w-btn" data-act="config" title="${w.type==="clock"?"Clock options":"Search options"}">⚙</button>` : "";
+    const cfgTitle = {clock:"Clock options", search:"Search options", weather:"Weather location"};
+    const configBtn = (w.type==="clock" || w.type==="search" || w.type==="weather")
+      ? `<button class="w-btn" data-act="config" title="${cfgTitle[w.type]}">⚙</button>` : "";
 
     el.innerHTML = `
       <div class="w-head">
@@ -664,7 +673,7 @@ function render(){
     makeResizable(el,w);
 
     el.querySelector('[data-act="close"]').addEventListener("click",()=>{
-      if(w.type==="feed" || w.type==="clock"){ state.widgets = state.widgets.filter(x=>x!==w); }
+      if(removable){ state.widgets = state.widgets.filter(x=>x!==w); }
       else { w.hidden = true; }
       save(); render(); syncSettingsForm();
     });
@@ -676,7 +685,8 @@ function render(){
     });
     const cfgB = el.querySelector('[data-act="config"]');
     if(cfgB) cfgB.addEventListener("click",e=>{ e.stopPropagation();
-      (w.type==="search" ? toggleSearchConfig : toggleClockConfig)(w, el, el.querySelector(".w-body"));
+      const fn = w.type==="search" ? toggleSearchConfig : w.type==="weather" ? toggleWeatherConfig : toggleClockConfig;
+      fn(w, el, el.querySelector(".w-body"));
     });
 
     loadWidget(w, el.querySelector(".w-body"));
@@ -1068,8 +1078,8 @@ const WMO = {
   95:["Thunderstorm","⛈️"],96:["Thunderstorm + hail","⛈️"],99:["Thunderstorm + hail","⛈️"]
 };
 
-async function resolveLocation(){
-  const L = state.location;
+async function resolveLocation(L){
+  L = L || {mode:"ip", city:""};
   if(L.mode==="gps"){
     const pos = await new Promise((res,rej)=>{
       if(!navigator.geolocation) return rej(new Error("no geolocation"));
@@ -1132,24 +1142,66 @@ function renderWeather(d, name, stale){
       </div>
     </div>`;
 }
+// Per-card cache: a map keyed by widget id, invalidated when its units or location change.
 const WX_KEY = "myhome.wx";
-function readWX(){ try{ const j=JSON.parse(localStorage.getItem(WX_KEY)); if(j && j.units===state.units && j.mode===state.location.mode && j.data) return j; }catch(e){} return null; }
-function writeWX(o){ try{ localStorage.setItem(WX_KEY, JSON.stringify(o)); }catch(e){} }
+function wxSig(cfg){ return (cfg.mode||"ip")+"|"+((cfg.city||"").trim().toLowerCase()); }
+function readWXAll(){ try{ return JSON.parse(localStorage.getItem(WX_KEY))||{}; }catch(e){ return {}; } }
+function readWX(id, cfg){ const j=readWXAll()[id]; return (j && j.units===state.units && j.sig===wxSig(cfg) && j.data) ? j : null; }
+function writeWX(id, o){ const all=readWXAll(); all[id]=o; try{ localStorage.setItem(WX_KEY, JSON.stringify(all)); }catch(e){} }
 
 async function loadWeather(w, body){
-  const cache = readWX();
+  const cfg = w.weather || (w.weather = {mode:"ip", city:""});
+  if(cfg.mode==="city" && !cfg.city.trim()){     // a freshly-added card with no city yet
+    body.innerHTML = `<div class="state"><div>No city set.</div><div class="keyhint" style="margin:0">Set a city for this weather card with the ⚙ button.</div></div>`;
+    return;
+  }
+  const cache = readWX(w.id, cfg);
   body.innerHTML = cache ? renderWeather(cache.data, cache.name, true) : loadingHTML;  // instant, resilient
   try{
-    const loc  = await resolveLocation();
+    const loc  = await resolveLocation(cfg);
     const name = loc.name || await reverseName(loc.lat, loc.lon);
     const data = await fetchJSON(openMeteoURL(loc));
     if(!data || !data.current) throw new Error("no data returned");
     body.innerHTML = renderWeather(data, name, false);
-    writeWX({data, name, units:state.units, mode:state.location.mode});
+    writeWX(w.id, {data, name, units:state.units, sig:wxSig(cfg)});
   }catch(e){
     // keep the cached (offline) view if we have one; otherwise show a helpful error
-    if(!cache) body.innerHTML = errorHTML("Weather unavailable — "+(e.message||e)+". Try entering a city in Settings → Weather.");
+    if(!cache) body.innerHTML = errorHTML("Weather unavailable — "+(e.message||e)+". Set a city for this card with the ⚙ button.");
   }
+}
+
+// In-card weather location popover, opened by the ⚙ in the header.
+function toggleWeatherConfig(w, el, body){
+  const existing = el.querySelector(".weather-cfg");
+  if(existing){ closePopover(el, existing); return; }
+  el.classList.add("cfg-open");
+  const cfg = w.weather || (w.weather = {mode:"ip", city:""});
+  const pop = document.createElement("div");
+  pop.className = "weather-cfg";
+  pop.innerHTML = `
+    <div class="cc-row"><span>Location</span>
+      <select class="wx-mode">
+        <option value="ip">Auto (by IP)</option>
+        <option value="city">Enter a city</option>
+        <option value="gps">Precise (GPS)</option>
+      </select></div>
+    <input class="wx-city" type="text" placeholder="e.g. Denver, CO" value="${esc(cfg.city||"")}">`;
+  el.appendChild(pop);
+  const modeSel = pop.querySelector(".wx-mode"), cityInp = pop.querySelector(".wx-city");
+  modeSel.value = cfg.mode || "ip";
+  const syncCityVis = ()=>{ cityInp.style.display = modeSel.value==="city" ? "block" : "none"; };
+  const applyTitle = ()=>{                          // name each card by its city so multiple are distinguishable
+    const tt = el.querySelector(".w-title .tt");
+    w.title = (cfg.mode==="city" && cfg.city.trim()) ? cfg.city.trim() : "Weather";
+    if(tt) tt.textContent = w.title;
+  };
+  const reload = ()=>{ save(); applyTitle(); loadWeather(w, body); };
+  syncCityVis();
+  modeSel.addEventListener("change",()=>{ cfg.mode = modeSel.value; syncCityVis(); reload(); });
+  cityInp.addEventListener("change",()=>{ cfg.city = cityInp.value.trim(); reload(); });
+  const onDoc = ev=>{ if(pop.contains(ev.target) || ev.target.closest('[data-act="config"]')) return; closePopover(el, pop); };
+  pop.__onDoc = onDoc;
+  setTimeout(()=>document.addEventListener("pointerdown", onDoc), 0);
 }
 
 /* ---------- Art ---------- */
@@ -1443,8 +1495,14 @@ function addClock(){
   state.widgets.push({id, type:"clock", title:"Clock", pos:firstFreeSpot(4,2), clock:{tz:"local", seconds:false, hour24:false, analog:false, showTz:true}});
   save(); render();
 }
+function addWeather(){
+  const id = "weather_"+(idSeq++)+"_"+Date.now().toString(36);
+  // new card starts on "city" with no city yet → prompts to set one via the ⚙
+  state.widgets.push({id, type:"weather", title:"Weather", pos:firstFreeSpot(4,3), weather:{mode:"city", city:""}});
+  save(); render();
+}
 // Widget types that are multi-instance and toggled collectively by one checkbox.
-const COLLECTIVE = {news:"feed", clock:"clock"};
+const COLLECTIVE = {news:"feed", clock:"clock", weather:"weather"};
 function showUtil(type){
   const existing = state.widgets.find(x=>x.type===type);
   if(existing){ existing.hidden=false; }
@@ -1474,9 +1532,6 @@ function selectTab(name){
 document.querySelectorAll("#settingsTabs .tab").forEach(tab=>tab.addEventListener("click",()=>selectTab(tab.dataset.tab)));
 
 function syncSettingsForm(){
-  $("#locMode").value = state.location.mode;
-  $("#locCity").value = state.location.city||"";
-  $("#locCity").style.display = state.location.mode==="city"?"block":"none";
   $("#units").value = state.units;
   $("#artSrc").value = state.art.source;
   $("#proxy").value = state.proxy;
@@ -1577,9 +1632,6 @@ function renderFeedEditor(){
   });
 }
 
-$("#locMode").addEventListener("change",e=>{
-  $("#locCity").style.display = e.target.value==="city"?"block":"none";
-});
 $("#settingsBtn").addEventListener("click",openSettings);
 $("#accentCustom").addEventListener("input",e=>setAccent(e.target.value));
 $("#bgCustom").addEventListener("input",e=>setBg(e.target.value));
@@ -1599,6 +1651,7 @@ $("#addFeedBtn2").addEventListener("click",()=>{
   state.widgets.push({id:"feed_"+(idSeq++)+"_"+Date.now().toString(36), type:"feed", title:"New feed", url:"", pos:firstFreeSpot(4,5), ai:newFeedAI()});
   renderFeedEditor();
 });
+$("#addWeatherBtn").addEventListener("click",()=>{ addWeather(); syncSettingsForm(); });
 $("#addClockBtn").addEventListener("click",()=>{ addClock(); syncSettingsForm(); });
 $("#resetLayout").addEventListener("click",()=>{
   const d = defaultState();
@@ -1615,8 +1668,6 @@ $("#resetAll").addEventListener("click",()=>{
   }
 });
 $("#saveSettings").addEventListener("click",()=>{
-  state.location.mode = $("#locMode").value;
-  state.location.city = $("#locCity").value.trim();
   state.units = $("#units").value;
   state.art.source = $("#artSrc").value;
   const px = $("#proxy").value.trim(); if(px) state.proxy = px;
@@ -1639,8 +1690,11 @@ $("#saveSettings").addEventListener("click",()=>{
   document.querySelectorAll("[data-util]").forEach(cb=>{
     const u = cb.dataset.util, ct = COLLECTIVE[u];
     if(ct){
-      if(cb.checked && ct==="clock" && !state.widgets.some(w=>w.type==="clock"))
-        state.widgets.push({id:"clock", type:"clock", title:"Clock", pos:firstFreeSpot(4,2), clock:{tz:"local",seconds:false,hour24:false,analog:false,showTz:false}});
+      if(cb.checked && !state.widgets.some(w=>w.type===ct)){   // turning a collective on with none present → seed a default card
+        if(ct==="clock")   state.widgets.push({id:"clock", type:"clock", title:"Clock", pos:firstFreeSpot(4,2), clock:{tz:"local",seconds:false,hour24:false,analog:false,showTz:false}});
+        if(ct==="weather") state.widgets.push({id:"weather", type:"weather", title:"Weather", pos:firstFreeSpot(4,3), weather:{mode:"ip", city:""}});
+        // news: intentionally not auto-created (a feed needs a URL)
+      }
       state.widgets.forEach(w=>{ if(w.type===ct) w.hidden = !cb.checked; });
     }
     else if(cb.checked) showUtil(u); else hideUtil(u);
