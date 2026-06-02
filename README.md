@@ -70,7 +70,7 @@ Everything is **configurable from a Settings panel** and **persists in your brow
 - 🤖 **AI‑summarized news (optional)** — bring your own **DeepSeek, OpenAI, or Anthropic** key and feeds turn into rich "For You" cards: headline, one‑sentence summary, and a representative image pulled from the article. Pick the **provider and model per feed**.
 - 📰 **Any RSS/Atom feed** — CNN, BBC, and The Verge ship as defaults; add, edit, or remove any feed you like.
 - 🌤️ **Local weather, no API key** — auto‑locates you by IP (or set a city / use GPS), powered by Open‑Meteo. Add **multiple cards for multiple cities**.
-- 🖼️ **Photo of the Day** — Fstoppers' editor‑picked photo by default, or a random masterpiece from the Art Institute of Chicago or The Met.
+- 🖼️ **Photo of the Day** — Fstoppers' editor‑picked photo by default, plus **NASA's Astronomy Picture of the Day** or a random masterpiece from the Art Institute of Chicago or The Met. **Shuffle** through recent days, or reset to today.
 - 🎨 **Fully themeable** — independent **accent** and **background** color pickers, themed scrollbars, and a subtle layered gradient + watermark for depth.
 - ⏱️ **Smart caching** — feeds cache for 30 minutes, the photo caches for the day, weather shows the last‑known reading instantly while it refreshes.
 - 🔒 **Local‑only & private** — your settings and API key never leave your browser except to call the services you've configured directly.
@@ -112,7 +112,9 @@ Results are **cached per feed for 30 minutes** (configurable), and the cache key
 
 ### Photo of the Day
 - **Fstoppers — Photo of the Day** (default): the editors' daily pick, via its RSS feed.
+- **NASA — Astronomy Picture of the Day**: the day's APOD via NASA's official JSON API (the ~weekly video days are skipped).
 - **Art Institute of Chicago** or **The Met**: a random public‑domain artwork each time.
+- **Shuffle 🔀 / Today 📅** — the **🔀** button in the card header swaps in a random photo from the source's recent days (the last ~14 for Fstoppers and APOD; a fresh random for the museums). **📅** appears after a shuffle to jump back to today's pick. Shuffles are *transient* — they never overwrite the day's cache, so a reload always returns to today's photo.
 - **Cached for the whole local day** — it loads once and stays put until tomorrow. The ⟳ button forces a fresh one on demand.
 
 ### Clock & Search
@@ -185,7 +187,7 @@ Click **⚙ Settings** (top‑right) to open the configuration modal. Changes pr
 | **Weather** | Units (°F·mph or °C·km/h), show/hide, and **＋ Add weather** for more cities. Each card's location (Auto‑IP / City / GPS) is set from its **⚙**. |
 | **News Feeds** | Add, rename, re‑URL, or remove feeds. Each feed becomes its own widget. |
 | **AI Summaries** | Enable AI cards; paste/clear a **DeepSeek / OpenAI / Anthropic** key; set **articles per feed** and **cache minutes**. (Provider & model are chosen per feed in **News Feeds**.) |
-| **Photo of the Day** | Source: Fstoppers POTD, Art Institute of Chicago, or The Met. |
+| **Photo of the Day** | Source: Fstoppers POTD, NASA APOD, Art Institute of Chicago, or The Met. |
 | **Accent Color** | 8 preset swatches + custom color picker. |
 | **Background Color** | 8 preset base tones + custom color picker (gradient + glow preserved). |
 | **Widgets** | Toggle Weather, Photo of the Day, Clock, and the Search bar. |
@@ -268,7 +270,7 @@ All free and key‑less, **except the AI providers** (optional, your key):
 | RSS → JSON (primary) | [rss2json](https://rss2json.com/) | No |
 | CORS proxy (fallback) | `api.allorigins.win` → `api.codetabs.com` | No |
 | AI summaries | [DeepSeek](https://platform.deepseek.com/) · [OpenAI](https://platform.openai.com/) · [Anthropic](https://console.anthropic.com/) | **Yes (optional)** |
-| Photo of the Day | [Fstoppers POTD](https://fstoppers.com/potd) | No |
+| Photo of the Day | [Fstoppers POTD](https://fstoppers.com/potd) · [NASA APOD](https://apod.nasa.gov/apod/astropix.html) | No (APOD uses NASA's public `DEMO_KEY`) |
 | Artwork | [Art Institute of Chicago](https://api.artic.edu/docs/) · [The Met](https://metmuseum.github.io/) | No |
 | Search | Google · Bing · Yahoo · custom URL | No |
 
@@ -379,7 +381,7 @@ Released under the **MIT License** — see [`LICENSE`](LICENSE). (Swap this out 
 - Weather by **[Open‑Meteo](https://open-meteo.com/)**.
 - Feed parsing by **[rss2json](https://rss2json.com/)**; CORS proxying by **[AllOrigins](https://allorigins.win/)** and **[CodeTabs](https://codetabs.com/)**.
 - AI summaries by **[DeepSeek](https://www.deepseek.com/)**, **[OpenAI](https://openai.com/)**, and **[Anthropic](https://www.anthropic.com/)**.
-- Photography from **[Fstoppers](https://fstoppers.com/)**; artwork from the **[Art Institute of Chicago](https://www.artic.edu/)** and **[The Metropolitan Museum of Art](https://www.metmuseum.org/)**.
+- Photography from **[Fstoppers](https://fstoppers.com/)** and **[NASA APOD](https://apod.nasa.gov/)**; artwork from the **[Art Institute of Chicago](https://www.artic.edu/)** and **[The Metropolitan Museum of Art](https://www.metmuseum.org/)**.
 - Geolocation by **ipwho.is**, **geojs.io**, **ipapi.co**, and **[BigDataCloud](https://www.bigdatacloud.com/)**.
 
 <p align="center"><sub>Built as a single HTML file, with no dependencies. 🦅</sub></p>

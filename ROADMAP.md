@@ -15,7 +15,7 @@ _Last updated: 2026-06-01_
 - [x] News feeds via rss2json (+ CORS-proxy fallback), add/edit/remove any RSS/Atom
 - [x] AI "For You" cards — article fetch → image + summary, 30-min per-feed cache
 - [x] **Multi-provider AI** — DeepSeek, OpenAI, Anthropic, **provider + model per feed**
-- [x] Photo of the Day — Fstoppers POTD / Art Institute / The Met, cached per day
+- [x] Photo of the Day — Fstoppers POTD / **NASA APOD** / Art Institute / The Met, cached per day; **🔀 shuffle** (a random recent photo — last ~14 days for Fstoppers/APOD) + **📅 reset to today**; show/hide toggle
 - [x] Clock & optional search widget
 - [x] **Search upgrades** — built-in engine selector (Google / Bing / Yahoo) + a custom search-URL option (Dogpile, etc.) set from the card's ⚙; fits cleanly in a 1-row-tall card
 - [x] **Multiple weather cards** — one card per city, each with its own location (Auto-IP / city / GPS) set from the card's ⚙; collective show/hide + per-card cache; units stay global
@@ -38,10 +38,10 @@ _Last updated: 2026-06-01_
 
 ## ⏭️ Planned (next up)
 
-### Photo of the Day
-- [ ] **Hide Photo of the Day** toggle (Settings)
-- [ ] Header **shuffle button** — pick a random photo from the **last 14 days** of the chosen provider; a **reset** button returns to today's pick
-  - _Keeps current behavior: first load of the day shows "today's" photo._
+### Clocks
+- [ ] **Time-zone backgrounds** — give each clock a subtle line-art landmark of its city in the **bottom-right corner**, so its location reads at a glance. Asset is ready: `img/time zone-background.png` (1254×1254) is a **4-col × 5-row sprite sheet of 17 city tiles** whose order matches `CLOCK_ZONES` exactly (index 0 = "Local / this device", … 16 = Auckland; last 3 cells blank).
+  - _Approach: a CSS background sprite — `background-size:400% 500%` with a per-zone `background-position` derived from the zone's index (`col = i%4`, `row = ⌊i/4⌋` → `x = col/3·100%`, `y = row/4·100%`), anchored bottom-right of the clock card. **Fade** it toward the time/date text with a gradient mask (e.g. `mask-image: linear-gradient(to top left, #000, transparent)` or a `radial-gradient(... at bottom right ...)`), so it's faint near the readout and strongest in the corner._
+  - _Open calls: crop to just the skyline vs. keep each tile's baked-in label (the card already shows the city as its title + tz chip); final opacity; whether it also shows for "Local" and on the analog face. Real filename has a space — `time zone-background.png`, not `time-zone background.png`._
 
 ### Feeds (carried over)
 - [ ] Custom-model text entry in the per-feed AI selector (type any model name, not just the curated list)
@@ -56,6 +56,13 @@ _Last updated: 2026-06-01_
 ---
 
 ## 💡 Ideas / Backlog
+
+### Infinite canvas + minimizable cards
+_Pack many windows close together and toggle them, instead of one very tall start page._
+- [ ] **Infinite / scrolling canvas** — today the viewport's width & height cap the usable area and how many widgets fit; instead, let the canvas **scroll vertically *and* horizontally**, growing on demand as cards are placed past the browser edges.
+- [ ] **Minimize button per card** — collapse a card to just its header bar (hide the body content); click again to expand.
+- [ ] **Expand → bring to front** — re-expanding a card (any time its body becomes visible again) immediately gives it the **top z-index**, so tightly-overlapping windows can be toggled open/closed cleanly.
+  - _Notes: the layout is currently a viewport-filling 12×9 CSS grid (`body{overflow:hidden}`, `clamp()`-bounded drag/resize). This shifts to a scrollable canvas whose grid grows past the viewport — `firstFreeSpot`, the drag/resize clamps, and "Reset layout" all assume fixed bounds and would need to follow it. Minimize = a persisted per-card `collapsed` flag (render header only); bring-to-front = a rising z-index counter in state so stacking order survives reload._
 
 - [ ] Import / export settings as a JSON file (backup + move between machines)
 - [ ] Light-theme support with auto-contrast text (when a light background is chosen)

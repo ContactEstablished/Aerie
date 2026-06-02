@@ -394,6 +394,7 @@
               <label>Source</label>
               <select class="field" id="artSrc">
                 <option value="fstoppers">Fstoppers — Photo of the Day</option>
+                <option value="apod">NASA — Astronomy Picture of the Day</option>
                 <option value="artic">Art Institute of Chicago (random)</option>
                 <option value="met">The Met (random)</option>
               </select>
@@ -661,12 +662,16 @@ function render(){
     const cfgTitle = {clock:"Clock options", search:"Search options", weather:"Weather location"};
     const configBtn = (w.type==="clock" || w.type==="search" || w.type==="weather")
       ? `<button class="w-btn" data-act="config" title="${cfgTitle[w.type]}">⚙</button>` : "";
+    // Photo of the Day: 🔀 shuffle a random recent photo · 📅 back to today's pick (shown only after a shuffle)
+    const artBtns = (w.type==="art")
+      ? `<button class="w-btn" data-act="shuffle" title="Shuffle — a random recent photo">🔀</button>`+
+        `<button class="w-btn" data-act="today" title="Back to today's pick" style="display:none">📅</button>` : "";
 
     el.innerHTML = `
       <div class="w-head">
         <div class="w-title"><span class="ic">${ICONS[w.type]||"▫"}</span><span class="tt">${esc(w.title||w.type)}</span></div>
         <div class="w-btns">
-          ${refreshBtn}${configBtn}
+          ${refreshBtn}${artBtns}${configBtn}
           <button class="w-btn" data-act="close" title="${closeTitle}">${closeIcon}</button>
         </div>
       </div>
@@ -688,6 +693,10 @@ function render(){
       if(w.type==="art")  clearArtCache();        // ⟳ gets a new photo even within the same day
       loadWidget(w, el.querySelector(".w-body"));
     });
+    const sb = el.querySelector('[data-act="shuffle"]');
+    if(sb) sb.addEventListener("click",()=> shuffleArt(w, el.querySelector(".w-body")));
+    const tb = el.querySelector('[data-act="today"]');
+    if(tb) tb.addEventListener("click",()=> resetArtToday(w, el.querySelector(".w-body")));
     const cfgB = el.querySelector('[data-act="config"]');
     if(cfgB) cfgB.addEventListener("click",e=>{ e.stopPropagation();
       const fn = w.type==="search" ? toggleSearchConfig : w.type==="weather" ? toggleWeatherConfig : toggleClockConfig;
@@ -1236,24 +1245,79 @@ const POTD_KEY="myhome.potd";
 function artDay(){ const d=new Date(); return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate(); }
 function readArtCache(){ try{ const j=JSON.parse(localStorage.getItem(POTD_KEY)); if(j && j.day===artDay() && j.source===state.art.source && j.art) return j.art; }catch(e){} return null; }
 function writeArtCache(art){ try{ localStorage.setItem(POTD_KEY, JSON.stringify({day:artDay(), source:state.art.source, art})); }catch(e){} }
-function clearArtCache(){ try{ localStorage.removeItem(POTD_KEY); }catch(e){} }
+function clearArtCache(){ try{ localStorage.removeItem(POTD_KEY); }catch(e){} for(const k in _artRecent) delete _artRecent[k]; }
+
+// Sources whose "recent days" we can list (newest = today's pick); the rest are random per fetch.
+const ART_LIST_SOURCES = {fstoppers:true, apod:true};
+let _artShuffleKey = "";          // url/img of the current shuffle — avoids picking it again next click
+const _artRecent = {};            // {source:{day, list}} — recent-days list, cached in memory (busted by ⟳)
 
 async function loadArt(w, body){
+  _artShuffleKey = ""; setTodayBtn(body, false);
   const cached = readArtCache();
-  if(cached){ renderArt(w, body, cached); return; }     // already loaded today — no fetch
+  if(cached){ renderArt(w, body, cached, false); return; }   // already loaded today — no fetch
   body.innerHTML = loadingHTML;
   try{
-    let art;
-    if(state.art.source==="fstoppers")   art = await fetchFstoppersPOTD();
-    else if(state.art.source==="met")    art = await fetchMetArt();
-    else                                 art = await fetchArticArt();
+    const art = await todaysArt(state.art.source);
     writeArtCache(art);
-    renderArt(w, body, art);
+    renderArt(w, body, art, false);
   }catch(e){
-    body.innerHTML = errorHTML("Couldn't load photo ("+(e.message||e)+")", "https://fstoppers.com/potd");
+    body.innerHTML = errorHTML("Couldn't load photo ("+(e.message||e)+")", artHomeLink());
   }
 }
-function renderArt(w, body, art){
+// "Today's" pick: the newest of the recent list (list sources), else a fresh random (museums).
+async function todaysArt(source){
+  if(ART_LIST_SOURCES[source]) return (await recentArtList(source))[0];
+  return source==="met" ? fetchMetArt() : fetchArticArt();
+}
+async function recentArtList(source){
+  if(_artRecent[source] && _artRecent[source].day===artDay()) return _artRecent[source].list;
+  const list = source==="apod" ? await fetchApodRecent(14) : await fetchFstoppersList(14);
+  _artRecent[source] = {day:artDay(), list};
+  return list;
+}
+
+// 🔀 Shuffle — a random recent photo. Transient: never written to the day cache, so a reload still
+// shows today's pick. List sources pick another recent day; museums fetch a fresh random.
+async function shuffleArt(w, body){
+  const wrap = body.querySelector(".imgwrap");
+  if(wrap) wrap.style.opacity = ".45"; else body.innerHTML = loadingHTML;   // dim current image while it loads
+  try{
+    let art;
+    if(ART_LIST_SOURCES[state.art.source]){
+      const list = await recentArtList(state.art.source);
+      const others = list.length>1 ? list.slice(1) : list;             // exclude index 0 = today's pick
+      const pool = others.filter(a=>(a.url||a.img)!==_artShuffleKey);   // …and avoid an immediate repeat
+      const choices = pool.length ? pool : others;
+      art = choices[Math.floor(Math.random()*choices.length)];
+    } else {
+      art = state.art.source==="met" ? await fetchMetArt() : await fetchArticArt();
+    }
+    _artShuffleKey = art.url || art.img || "";
+    renderArt(w, body, art, true);
+    setTodayBtn(body, true);
+  }catch(e){
+    if(wrap) wrap.style.opacity = "";
+    else body.innerHTML = errorHTML("Couldn't shuffle ("+(e.message||e)+")", artHomeLink());
+  }
+}
+// 📅 Back to today's pick — re-render the day cache (no network); hide the Today button.
+function resetArtToday(w, body){
+  _artShuffleKey = "";
+  const cached = readArtCache();
+  if(cached) renderArt(w, body, cached, false); else loadArt(w, body);
+  setTodayBtn(body, false);
+}
+function setTodayBtn(body, show){
+  const btn = body.closest(".w")?.querySelector('[data-act="today"]');
+  if(btn) btn.style.display = show ? "" : "none";
+}
+function artHomeLink(){
+  return state.art.source==="apod" ? "https://apod.nasa.gov/apod/astropix.html"
+       : state.art.source==="fstoppers" ? "https://fstoppers.com/potd" : "#";
+}
+
+function renderArt(w, body, art, shuffled){
   body.innerHTML = `
     <div class="art">
       <div class="imgwrap">
@@ -1261,26 +1325,64 @@ function renderArt(w, body, art){
              onerror="this.closest('.w-body').__retry && this.closest('.w-body').__retry()">
         <a class="cap" href="${esc(art.url)}" target="_blank" rel="noopener">
           <span class="t">${esc(art.title)}</span>
-          <span class="a">${esc(art.artist)}${art.date?" · "+esc(art.date):""}</span>
+          <span class="a">${esc(art.artist)}${art.date?" · "+esc(art.date):""}${shuffled?' · <span style="color:var(--accent)">shuffled</span>':""}</span>
         </a>
       </div>
     </div>`;
-  // broken-image fallback: random sources grab a new one; POTD leaves it (single fixed image)
-  body.__retry = state.art.source==="fstoppers" ? null : ()=>{ clearArtCache(); loadArt(w,body); };
+  // broken-image fallback: a shuffle tries another; museums grab a new one; a list-source's today stays put
+  body.__retry = shuffled ? ()=>shuffleArt(w,body)
+               : ART_LIST_SOURCES[state.art.source] ? null
+               : ()=>{ clearArtCache(); loadArt(w,body); };
 }
-async function fetchFstoppersPOTD(){
+
+// Fstoppers POTD feed → up to `limit` recent days, newest first (index 0 = today's photo of the day).
+async function fetchFstoppersList(limit){
   const xml = await fetchProxiedText("https://fstoppers.com/potd/feed");
   const doc = new DOMParser().parseFromString(xml,"text/xml");
-  const item = doc.querySelector("item");           // first item = today's photo of the day
-  if(!item) throw new Error("no photo in feed");
-  const title = (item.querySelector("title")?.textContent || "Photo of the Day").trim();
-  const link  = (item.querySelector("link")?.textContent  || "https://fstoppers.com/potd").trim();
-  const img   = item.querySelector("enclosure")?.getAttribute("url");
-  if(!img) throw new Error("no image in feed");
-  const desc = item.querySelector("description")?.textContent || "";
-  let date = ""; const m = desc.match(/datetime="([^"]+)"/);
-  if(m){ const d = new Date(m[1]); if(!isNaN(d)) date = d.toLocaleDateString(undefined,{month:"long",day:"numeric",year:"numeric"}); }
-  return {title, artist:"Fstoppers · Photo of the Day", date, img, url:link};
+  const items = [...doc.querySelectorAll("item")];
+  if(!items.length) throw new Error("no photo in feed");
+  const arts = items.slice(0, limit||14).map(item=>{
+    const img = item.querySelector("enclosure")?.getAttribute("url");
+    if(!img) return null;
+    const title = (item.querySelector("title")?.textContent || "Photo of the Day").trim();
+    const link  = (item.querySelector("link")?.textContent  || "https://fstoppers.com/potd").trim();
+    const desc  = item.querySelector("description")?.textContent || "";
+    let date = ""; const m = desc.match(/datetime="([^"]+)"/);
+    if(m){ const d = new Date(m[1]); if(!isNaN(d)) date = d.toLocaleDateString(undefined,{month:"long",day:"numeric",year:"numeric"}); }
+    return {title, artist:"Fstoppers · Photo of the Day", date, img, url:link};
+  }).filter(Boolean);
+  if(!arts.length) throw new Error("no image in feed");
+  return arts;
+}
+
+// NASA Astronomy Picture of the Day — official JSON API (CORS-enabled; DEMO_KEY is fine for a
+// once-a-day cached load). start_date/end_date returns the recent window in ONE call for shuffle.
+// The ~weekly video days are skipped (media_type !== "image").
+const APOD_API = "https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY";
+function apodArt(d){
+  const img = (d && d.media_type==="image") ? (d.url || d.hdurl) : "";
+  if(!img) return null;
+  const cr = d.copyright ? " · © "+d.copyright.replace(/\s+/g," ").trim() : "";
+  const page = d.date ? "https://apod.nasa.gov/apod/ap"+d.date.slice(2).replace(/-/g,"")+".html"
+                      : "https://apod.nasa.gov/apod/astropix.html";
+  return {title:d.title||"Astronomy Picture of the Day", artist:"NASA · APOD"+cr, date:d.date||"", img, url:page};
+}
+async function fetchApodJSON(url){
+  try{ return await fetchJSON(url, 12000); }                          // api.nasa.gov sends CORS: *
+  catch(e){ return JSON.parse(await fetchProxiedText(url, 12000)); } // …fall back through the proxy
+}
+async function fetchApodRecent(days){
+  const DAY=86400000, fmt=dt=>dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");
+  // today's APOD may not be published yet near UTC midnight — retry the window ending yesterday
+  for(let back=0; back<2; back++){
+    const e=new Date(Date.now()-back*DAY), s=new Date(e.getTime()-(days-1)*DAY);
+    try{
+      const arr = await fetchApodJSON(APOD_API+"&start_date="+fmt(s)+"&end_date="+fmt(e));
+      const arts = (Array.isArray(arr)?arr:[arr]).map(apodArt).filter(Boolean).reverse();   // newest first
+      if(arts.length) return arts;
+    }catch(err){ if(back) throw err; }
+  }
+  throw new Error("no APOD image in the last "+days+" days");
 }
 async function fetchArticArt(){
   const page = 1 + Math.floor(Math.random()*400);
