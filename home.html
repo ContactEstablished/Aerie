@@ -64,18 +64,27 @@
   .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:transparent}
 
   /* ---------- Grid ---------- */
-  .grid{
+  /* The scroll viewport: fixed-size window framed with the border; the inner .grid is sized to its
+     content (max-content) so it overflows here and the canvas scrolls + grows on both axes. */
+  .grid-scroll{
     flex:1 1 auto; min-height:0;
     position:relative; z-index:1;
     margin:0 12px 12px;
+    overflow:auto;
+    border:1px solid var(--line);
+    border-radius:10px;
+    scrollbar-gutter:stable;
+  }
+  .grid{
+    position:relative;
+    width:max-content; height:max-content;
+    min-width:100%; min-height:100%;        /* fill the viewport when the canvas is smaller than 12x9 */
     display:grid;
     gap:0;
     background-image:
       linear-gradient(to right, var(--line) 1px, transparent 1px),
       linear-gradient(to bottom, var(--line) 1px, transparent 1px);
     background-position:0 0;
-    border:1px solid var(--line);
-    border-radius:10px;
     transition:background-image .2s;
   }
   .grid.show-grid{
@@ -97,7 +106,11 @@
     box-shadow:0 10px 30px rgba(0,0,0,0.28);
     transition:box-shadow .15s, transform .04s;
   }
-  .w.dragging{box-shadow:0 22px 50px rgba(0,0,0,0.5); outline:1px solid var(--line-hot); z-index:50; opacity:.97}
+  /* a dragged card floats above everything — must beat the persisted per-card z-index counter */
+  .w.dragging{box-shadow:0 22px 50px rgba(0,0,0,0.5); outline:1px solid var(--line-hot); z-index:100000; opacity:.97}
+  /* minimized: only the header bar shows; body + resize hidden so it frees the space below */
+  .w.collapsed{align-self:start; height:auto}
+  .w.collapsed .w-body, .w.collapsed .w-resize{display:none}
   .w-head{
     display:flex; align-items:center; gap:8px;
     padding:9px 12px;
@@ -314,12 +327,20 @@
   .feedrow{display:flex;gap:6px;margin-bottom:6px;align-items:center}
   .feedrow .t{width:34%}
   .feedrow .u{flex:1}
-  .feeditem{border:1px solid var(--border);border-radius:10px;padding:7px;margin-bottom:8px;background:rgba(255,255,255,0.02)}
+  .feeditem{border:1px solid var(--border);border-radius:10px;padding:7px;margin-bottom:11px;background:rgba(255,255,255,0.02)}
   .feeditem .feedrow{margin-bottom:6px}
   .feeditem .feedrow:last-child{margin-bottom:0}
   .fr-ai{align-items:center}
   .fr-ai select{flex:1;min-width:0}
   .ai-tag{font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--muted);background:rgba(255,255,255,0.06);border-radius:6px;padding:4px 7px;flex:0 0 auto}
+  /* per-feed refresh interval row */
+  .fr-refresh{margin-top:6px;gap:8px}
+  .fr-refresh label{font-size:12px;color:var(--dim);flex:0 0 auto}
+  .fr-refresh .refresh{flex:0 0 auto;max-width:84px;text-align:right}
+  .fr-refresh .ref-unit{font-size:12px;color:var(--dim);flex:0 0 auto}
+  /* small accent link beside a settings section heading (e.g. "get a key") */
+  .seclink{font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--accent);text-decoration:none;margin-left:8px}
+  .seclink:hover{text-decoration:underline}
   .swatches{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:10px}
   .swatch{width:30px;height:30px;border-radius:50%;cursor:pointer;border:2px solid transparent;box-shadow:0 0 0 1px rgba(255,255,255,0.12) inset;transition:transform .08s}
   .swatch:hover{transform:scale(1.12)}
@@ -339,11 +360,10 @@
     <div class="brand"><img class="ic" src="img/aerie-icon.png" alt="Aerie logo"><img class="word" src="img/aerie-wordmark.png" alt="Aerie"></div>
     <div class="spacer"></div>
     <span class="hint">drag a header to move · drag a corner to resize · snaps to grid</span>
-    <button class="btn" id="addFeedBtn">＋ Feed</button>
     <button class="btn" id="settingsBtn">⚙ Settings</button>
   </div>
 
-  <div class="grid" id="grid"></div>
+  <div class="grid-scroll" id="gridScroll"><div class="grid" id="grid"></div></div>
 
   <!-- Settings -->
   <div class="overlay" id="overlay">
@@ -392,7 +412,7 @@
             <div class="smallnote">Add any site's RSS/Atom URL. Examples — NYT: <code>https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml</code> · Hacker News: <code>https://hnrss.org/frontpage</code> · ESPN: <code>https://www.espn.com/espn/rss/news</code></div>
           </div>
           <div class="sec">
-            <h3>rss2json key (optional)</h3>
+            <h3>rss2json key (optional)<a class="seclink" id="rss2jsonLink" href="https://rss2json.com/plans" target="_blank" rel="noopener">get a key ↗</a></h3>
             <div class="row"><label>API key</label><input class="field" id="rss2jsonKey" type="password" placeholder="rss2json API key" autocomplete="off"><button class="btn danger" id="clearRss2json" type="button" style="flex:0 0 auto">Clear</button></div>
             <div class="smallnote">Feeds load via the free <code>rss2json</code> tier, which returns ~10 items per feed. Add a paid key (<code>rss2json.com</code>) to raise that cap; leave blank to stay on the free tier.</div>
           </div>
@@ -490,6 +510,9 @@
 
 const LS_KEY = "myhome.v1";
 const clamp = (v,a,b)=>Math.max(a,Math.min(b,v));
+// Canvas grid: 12x9 is the base extent that fills the viewport; the canvas grows past it (up to MAX)
+// as cards are dragged/resized out, and trims back toward base when they move in.
+const BASE_COLS=12, BASE_ROWS=9, MAX_COLS=48, MAX_ROWS=48;
 const $ = s=>document.querySelector(s);
 const esc = s=>String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 
@@ -532,7 +555,8 @@ function firstKeyedProvider(){
 /* ---------- default state ---------- */
 function defaultState(){
   return {
-    grid:{cols:12, rows:9},
+    grid:{cols:12, rows:9},   // current canvas extent (grows/shrinks at runtime; 12x9 = the base)
+    zCounter:10,              // rising counter for per-card stacking order (bring-to-front)
     units:"us",
     art:{source:"fstoppers"},
     ai:{enabled:true, itemsPerFeed:5, cacheMinutes:30, keys:{deepseek:"", openai:"", anthropic:""}},
@@ -540,12 +564,12 @@ function defaultState(){
     proxy:PROXIES[0],
     rss2jsonKey:"",
     widgets:[
-      {id:"cnn",   type:"feed", title:"CNN",        url:"http://rss.cnn.com/rss/cnn_topstories.rss",      pos:{c:0,r:0,w:4,h:6}, ai:{provider:"deepseek", model:"deepseek-chat"}},
-      {id:"bbc",   type:"feed", title:"BBC",        url:"http://feeds.bbci.co.uk/news/world/rss.xml",      pos:{c:4,r:0,w:4,h:6}, ai:{provider:"deepseek", model:"deepseek-chat"}},
-      {id:"verge", type:"feed", title:"The Verge",  url:"https://www.theverge.com/rss/index.xml",          pos:{c:0,r:6,w:8,h:3}, ai:{provider:"deepseek", model:"deepseek-chat"}},
-      {id:"weather",type:"weather", title:"Weather", pos:{c:8,r:0,w:4,h:3}, weather:{mode:"ip", city:""}},
-      {id:"clock",  type:"clock",   title:"Clock",   pos:{c:8,r:3,w:4,h:2}, clock:{tz:"local", seconds:false, hour24:false, analog:false, showTz:false}},
-      {id:"art",    type:"art",     title:"Photo of the Day", pos:{c:8,r:5,w:4,h:4}}
+      {id:"cnn",   type:"feed", title:"CNN",        url:"http://rss.cnn.com/rss/cnn_topstories.rss",      pos:{c:0,r:0,w:4,h:6}, z:1, collapsed:false, refreshMins:30, ai:{provider:"deepseek", model:"deepseek-chat"}},
+      {id:"bbc",   type:"feed", title:"BBC",        url:"http://feeds.bbci.co.uk/news/world/rss.xml",      pos:{c:4,r:0,w:4,h:6}, z:2, collapsed:false, refreshMins:30, ai:{provider:"deepseek", model:"deepseek-chat"}},
+      {id:"verge", type:"feed", title:"The Verge",  url:"https://www.theverge.com/rss/index.xml",          pos:{c:0,r:6,w:8,h:3}, z:3, collapsed:false, refreshMins:30, ai:{provider:"deepseek", model:"deepseek-chat"}},
+      {id:"weather",type:"weather", title:"Weather", pos:{c:8,r:0,w:4,h:3}, z:4, collapsed:false, weather:{mode:"ip", city:""}},
+      {id:"clock",  type:"clock",   title:"Clock",   pos:{c:8,r:3,w:4,h:2}, z:5, collapsed:false, clock:{tz:"local", seconds:false, hour24:false, analog:false, showTz:false}},
+      {id:"art",    type:"art",     title:"Photo of the Day", pos:{c:8,r:5,w:4,h:4}, z:6, collapsed:false}
     ]
   };
 }
@@ -618,6 +642,19 @@ function migrate(s){
     s.rss2jsonKey ??= "";   // optional paid rss2json key to lift the ~10-item-per-feed cap
     s.__v = 10;
   }
+  if(s.__v < 11){
+    // scrollable/growable canvas: per-card minimize (collapsed) + persisted stacking order (z)
+    let z = 10;
+    (s.widgets||[]).forEach(w=>{ w.collapsed ??= false; w.z ??= ++z; });
+    s.zCounter = Math.max(s.zCounter||10, z);
+    s.__v = 11;
+  }
+  if(s.__v < 12){
+    // per-feed refresh interval (minutes); seed from the old global AI cache window
+    const def = (s.ai && s.ai.cacheMinutes) || 30;
+    (s.widgets||[]).forEach(w=>{ if(w.type==="feed") w.refreshMins ??= def; });
+    s.__v = 12;
+  }
 }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 
@@ -649,23 +686,59 @@ function applyTheme(){
    Rendering the grid
    ============================================================ */
 const grid = $("#grid");
+const gridScroll = $("#gridScroll");
 let idSeq = 1;
+let cellW = 0, cellH = 0;   // px per grid cell — derived from the scroll viewport / base 12x9
+
+// effective row span: a minimized card collapses to a single header row, freeing the space below
+const effH = w => w.collapsed ? 1 : w.pos.h;
+
+// Size cells so the base 12x9 exactly fills the scroll viewport; cards beyond that overflow + scroll.
+function applyCellSize(){
+  cellW = gridScroll.clientWidth  / BASE_COLS;
+  cellH = gridScroll.clientHeight / BASE_ROWS;
+  const r = document.documentElement.style;
+  r.setProperty("--cell-w", cellW+"px");
+  r.setProperty("--cell-h", cellH+"px");
+}
+
+// Grow/shrink the canvas extent to fit the furthest card edge (floored at base, capped at MAX).
+// Returns true if cols/rows changed (so callers can repaint the grid only when needed).
+function recomputeExtent(){
+  let mc = BASE_COLS, mr = BASE_ROWS;
+  for(const w of state.widgets){
+    if(w.hidden) continue;
+    mc = Math.max(mc, w.pos.c + w.pos.w);
+    mr = Math.max(mr, w.pos.r + effH(w));
+  }
+  const cols = clamp(mc, BASE_COLS, MAX_COLS), rows = clamp(mr, BASE_ROWS, MAX_ROWS);
+  if(cols===state.grid.cols && rows===state.grid.rows) return false;
+  state.grid.cols = cols; state.grid.rows = rows; return true;
+}
 
 function applyGridSize(){
   const {cols,rows} = state.grid;
-  grid.style.gridTemplateColumns = `repeat(${cols},1fr)`;
-  grid.style.gridTemplateRows = `repeat(${rows},1fr)`;
-  const bx = (100/cols)+"% "+(100/rows)+"%";
+  grid.style.gridTemplateColumns = `repeat(${cols}, var(--cell-w))`;
+  grid.style.gridTemplateRows    = `repeat(${rows}, var(--cell-h))`;
+  const bx = cellW+"px "+cellH+"px";
   grid.style.backgroundSize = bx+", "+bx;
 }
 function applyPos(el,w){
+  w.collapsed ??= false; w.z ??= ++state.zCounter;   // defensive: never render a card without z
   el.style.gridColumn = (w.pos.c+1)+" / span "+w.pos.w;
-  el.style.gridRow    = (w.pos.r+1)+" / span "+w.pos.h;
+  el.style.gridRow    = (w.pos.r+1)+" / span "+effH(w);
+  el.style.zIndex     = w.z;
+  el.classList.toggle("collapsed", !!w.collapsed);
 }
+
+// Raise a card to the top of the stacking order (persisted via the rising counter).
+function bringToFront(w){ w.z = ++state.zCounter; }
 
 const ICONS = {feed:"📰", weather:"⛅", art:"📷", clock:"🕑", search:"🔎"};
 
 function render(){
+  applyCellSize();          // re-fit px cells to the viewport (handles scrollbar show/hide)
+  recomputeExtent();        // fit the canvas extent to the current widgets before painting
   applyGridSize();
   grid.innerHTML = "";
   for(const w of state.widgets){
@@ -693,6 +766,7 @@ function render(){
         <div class="w-title"><span class="ic">${ICONS[w.type]||"▫"}</span><span class="tt">${esc(w.title||w.type)}</span></div>
         <div class="w-btns">
           ${refreshBtn}${artBtns}${configBtn}
+          <button class="w-btn" data-act="minimize" title="${w.collapsed?"Expand":"Minimize"}">${w.collapsed?"▢":"—"}</button>
           <button class="w-btn" data-act="close" title="${closeTitle}">${closeIcon}</button>
         </div>
       </div>
@@ -707,6 +781,11 @@ function render(){
       if(removable){ state.widgets = state.widgets.filter(x=>x!==w); }
       else { w.hidden = true; }
       save(); render(); syncSettingsForm();
+    });
+    el.querySelector('[data-act="minimize"]').addEventListener("click",e=>{ e.stopPropagation();
+      w.collapsed = !w.collapsed;
+      if(!w.collapsed) bringToFront(w);   // re-expanding pops the card to the front
+      recomputeExtent(); save(); render();
     });
     const rb = el.querySelector('[data-act="refresh"]');
     if(rb) rb.addEventListener("click",()=>{
@@ -742,12 +821,14 @@ function makeDraggable(el,w){
     const cw = r.width/state.grid.cols, ch = r.height/state.grid.rows;
     const offX = e.clientX - wr.left, offY = e.clientY - wr.top;
     el.classList.add("dragging"); grid.classList.add("show-grid");
+    bringToFront(w); el.style.zIndex = w.z;        // raise it while (and after) dragging
     head.setPointerCapture(e.pointerId);
     const move=ev=>{
       let c = Math.round((ev.clientX - r.left - offX)/cw);
       let rr= Math.round((ev.clientY - r.top  - offY)/ch);
-      w.pos.c = clamp(c,0,state.grid.cols - w.pos.w);
-      w.pos.r = clamp(rr,0,state.grid.rows - w.pos.h);
+      w.pos.c = clamp(c,0,MAX_COLS - w.pos.w);
+      w.pos.r = clamp(rr,0,MAX_ROWS - w.pos.h);
+      if(recomputeExtent()) applyGridSize();        // grow the canvas live so it can scroll into new space
       applyPos(el,w);
     };
     const up=()=>{
@@ -755,6 +836,7 @@ function makeDraggable(el,w){
       head.removeEventListener("pointerup",up);
       el.classList.remove("dragging"); grid.classList.remove("show-grid");
       save();
+      applyCellSize(); recomputeExtent(); applyGridSize();   // settle cell size + trim the canvas after the drag
     };
     head.addEventListener("pointermove",move);
     head.addEventListener("pointerup",up);
@@ -773,8 +855,9 @@ function makeResizable(el,w){
     const move=ev=>{
       let nw = Math.round((ev.clientX - r.left)/cw) - w.pos.c;
       let nh = Math.round((ev.clientY - r.top )/ch) - w.pos.r;
-      w.pos.w = clamp(nw,1,state.grid.cols - w.pos.c);
-      w.pos.h = clamp(nh,1,state.grid.rows - w.pos.r);
+      w.pos.w = clamp(nw,1,MAX_COLS - w.pos.c);
+      w.pos.h = clamp(nh,1,MAX_ROWS - w.pos.r);
+      if(recomputeExtent()) applyGridSize();        // grow the canvas live as the card expands past the edge
       applyPos(el,w);
     };
     const up=()=>{
@@ -782,6 +865,7 @@ function makeResizable(el,w){
       h.removeEventListener("pointerup",up);
       el.classList.remove("dragging"); grid.classList.remove("show-grid");
       save();
+      applyCellSize(); recomputeExtent(); applyGridSize();   // settle cell size + trim the canvas after the resize
     };
     h.addEventListener("pointermove",move);
     h.addEventListener("pointerup",up);
@@ -850,11 +934,31 @@ function loadWidget(w, body){
 
 /* ---------- News feed ---------- */
 // Dispatcher: AI-enhanced "For You" cards if a DeepSeek key is set, else a classic list.
+// Per-feed auto-refresh: how often (minutes) each feed re-fetches; falls back to the global AI cache window.
+const feedLoadedAt = {};   // id -> last load time (runtime only; resets on page reload)
+function feedRefreshMins(w){ return clamp(parseInt(w && w.refreshMins, 10) || (state.ai.cacheMinutes||30), 1, 9999); }
+// One global ticker reloads each visible feed when its interval elapses (queries the DOM each tick, so add/remove just works).
+function startFeedTicker(){
+  if(window.__feedTicker) return;
+  window.__feedTicker = setInterval(()=>{
+    document.querySelectorAll(".w[data-id]").forEach(el=>{
+      const w = state.widgets.find(x=>x.id===el.dataset.id);
+      if(!w || w.type!=="feed" || w.hidden) return;
+      if(Date.now() >= (feedLoadedAt[w.id]||0) + feedRefreshMins(w)*60000){
+        const body = el.querySelector(".w-body");
+        if(body) loadWidget(w, body);
+      }
+    });
+  }, 30000);
+}
+
 async function loadFeed(w, body){
   if(!w.url || !/^https?:\/\//i.test(w.url)){   // never fetch a blank/invalid URL
     body.innerHTML = `<div class="state"><div>No feed URL set.</div><div class="keyhint" style="margin:0">Add an RSS/Atom URL for “${esc(w.title||"this feed")}” in ⚙ Settings, or remove it.</div></div>`;
     return;
   }
+  feedLoadedAt[w.id] = Date.now();   // mark this load; the ticker re-fetches refreshMins later
+  startFeedTicker();
   const ai = feedAIConfig(w);
   if(ai) return loadFeedAI(w, body, ai);
   const p = w.ai && w.ai.provider;
@@ -953,8 +1057,8 @@ async function loadFeedAI(w, body, ai){
   const cache = readFeedCache(w.id);
   const fresh = cache && cache.url===w.url && cache.count===count
              && cache.provider===ai.provider && cache.model===ai.model
-             && (Date.now()-cache.ts) < (state.ai.cacheMinutes||30)*60000;
-  if(fresh) return renderForYou(w, body, cache.items, cache.ts);           // within cache window: no network at all
+             && (Date.now()-cache.ts) < feedRefreshMins(w)*60000;
+  if(fresh) return renderForYou(w, body, cache.items, cache.ts);           // within this feed's refresh window: no network at all
 
   body.innerHTML = `<div class="state"><div class="spinner"></div><div>Reading articles &amp; summarizing with ${esc(PROVIDER_LABEL[ai.provider]||"AI")}…</div></div>`;
   try{
@@ -1077,7 +1181,7 @@ function parseSummaries(content){
 
 function renderForYou(w, body, items, ts){
   const updated = ts ? "updated "+timeAgo(new Date(ts)) : "";
-  const nextRef = nextRefreshLabel(ts);
+  const nextRef = nextRefreshLabel(ts, w);
   const home = (()=>{ try{ return new URL(w.url).origin; }catch(e){ return "#"; } })();
   const rows = items.map(x=>`
     <a class="fy-item" href="${esc(x.link)}" target="_blank" rel="noopener">
@@ -1123,10 +1227,10 @@ function timeAgo(d){
   const h=Math.floor(m/60); if(h<24) return h+"h ago";
   const dd=Math.floor(h/24); return dd+"d ago";
 }
-// AI feeds cache for `cacheMinutes`; show how long until the next live rebuild.
-function nextRefreshLabel(ts){
+// AI feeds cache for the feed's refresh window; show how long until the next live rebuild.
+function nextRefreshLabel(ts, w){
   if(!ts) return "";
-  const remMs = ts + (state.ai.cacheMinutes||30)*60000 - Date.now();
+  const remMs = ts + feedRefreshMins(w)*60000 - Date.now();
   if(remMs <= 0) return "refresh due";
   return "next refresh in "+Math.ceil(remMs/60000)+"m";
 }
@@ -1145,6 +1249,9 @@ const WMO = {
   95:["Thunderstorm","⛈️"],96:["Thunderstorm + hail","⛈️"],99:["Thunderstorm + hail","⛈️"]
 };
 
+// US state/territory abbreviation -> full name, so "Denver, CO" resolves against the geocoder's admin1.
+const US_STATES = {al:"alabama",ak:"alaska",az:"arizona",ar:"arkansas",ca:"california",co:"colorado",ct:"connecticut",de:"delaware",fl:"florida",ga:"georgia",hi:"hawaii",id:"idaho",il:"illinois",in:"indiana",ia:"iowa",ks:"kansas",ky:"kentucky",la:"louisiana",me:"maine",md:"maryland",ma:"massachusetts",mi:"michigan",mn:"minnesota",ms:"mississippi",mo:"missouri",mt:"montana",ne:"nebraska",nv:"nevada",nh:"new hampshire",nj:"new jersey",nm:"new mexico",ny:"new york",nc:"north carolina",nd:"north dakota",oh:"ohio",ok:"oklahoma",or:"oregon",pa:"pennsylvania",ri:"rhode island",sc:"south carolina",sd:"south dakota",tn:"tennessee",tx:"texas",ut:"utah",vt:"vermont",va:"virginia",wa:"washington",wv:"west virginia",wi:"wisconsin",wy:"wyoming",dc:"district of columbia",pr:"puerto rico"};
+
 async function resolveLocation(L){
   L = L || {mode:"ip", city:""};
   if(L.mode==="gps"){
@@ -1155,9 +1262,20 @@ async function resolveLocation(L){
     return {lat:pos.coords.latitude, lon:pos.coords.longitude, name:null};
   }
   if(L.mode==="city" && L.city.trim()){
-    const g = await fetchJSON("https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&name="+encodeURIComponent(L.city.trim()));
+    // Open-Meteo's geocoder matches a single place NAME — passing "Denver, CO" finds nothing.
+    // Split off the city name, then use the rest (state/country) to pick among same-named places.
+    const parts = L.city.split(",").map(s=>s.trim()).filter(Boolean);
+    const name = parts[0];
+    let hint = parts.slice(1).join(", ").toLowerCase();
+    if(US_STATES[hint]) hint = US_STATES[hint];        // "CO" -> "colorado", so it matches admin1
+    const g = await fetchJSON("https://geocoding-api.open-meteo.com/v1/search?count=10&language=en&name="+encodeURIComponent(name));
     if(!g.results || !g.results.length) throw new Error("City not found");
-    const r = g.results[0];
+    let r = g.results[0];                              // default: best (highest-population) match
+    if(hint){
+      const m = g.results.find(x=>[x.admin1,x.admin2,x.country,x.country_code]
+        .filter(Boolean).map(s=>String(s).toLowerCase()).some(f=> f===hint || f.includes(hint)));
+      if(m) r = m;                                     // a state/country hint that matches wins
+    }
     return {lat:r.latitude, lon:r.longitude, name:[r.name,r.admin1,r.country_code].filter(Boolean).join(", ")};
   }
   // default: IP-based — try several providers; any one can be down or rate-limited
@@ -1648,18 +1766,20 @@ function toggleSearchConfig(w, el, body){
    Adding widgets
    ============================================================ */
 function firstFreeSpot(w,h){
-  // naive scan for a spot that doesn't overlap existing visible widgets
+  // naive scan for a spot that doesn't overlap existing visible widgets (collapsed cards count as 1 row tall)
   const occ = (c,r)=> state.widgets.some(x=>!x.hidden &&
-    c < x.pos.c+x.pos.w && c+w > x.pos.c && r < x.pos.r+x.pos.h && r+h > x.pos.r);
-  for(let r=0;r<=state.grid.rows-h;r++)
-    for(let c=0;c<=state.grid.cols-w;c++)
+    c < x.pos.c+x.pos.w && c+w > x.pos.c && r < x.pos.r+effH(x) && r+h > x.pos.r);
+  for(let r=0;r<=MAX_ROWS-h;r++)
+    for(let c=0;c<=MAX_COLS-w;c++)
       if(!occ(c,r)) return {c,r,w,h};
-  return {c:0,r:0,w,h};
+  // canvas full (shouldn't happen) — append below everything rather than overlap at the origin
+  const bottom = Math.max(0, ...state.widgets.filter(x=>!x.hidden).map(x=>x.pos.r+effH(x)));
+  return {c:0,r:bottom,w,h};
 }
 function newFeedAI(){ const p = firstKeyedProvider(); return {provider:p, model: DEFAULT_MODELS[p] || DEFAULT_MODELS.deepseek}; }
 function addFeed(title,url){
   const id = "feed_"+(idSeq++)+"_"+Date.now().toString(36);
-  state.widgets.push({id, type:"feed", title:title||"News", url:url||"", pos:firstFreeSpot(4,5), ai:newFeedAI()});
+  state.widgets.push({id, type:"feed", title:title||"News", url:url||"", pos:firstFreeSpot(4,5), refreshMins:(state.ai.cacheMinutes||30), ai:newFeedAI()});
   save(); render();
 }
 function addClock(){
@@ -1708,6 +1828,7 @@ function syncSettingsForm(){
   $("#artSrc").value = state.art.source;
   $("#proxy").value = state.proxy;
   $("#rss2jsonKey").value = state.rss2jsonKey || "";
+  updateRss2jsonLink();
   $("#aiEnabled").checked = !!state.ai.enabled;
   const keys = state.ai.keys || {};
   $("#key_deepseek").value = keys.deepseek || "";
@@ -1778,8 +1899,13 @@ function renderFeedEditor(){
         <select class="field prov">${provOpts}</select>
         <select class="field model"></select>
       </div>
-      <input class="field model-custom" placeholder="Custom model name (e.g. gpt-4o-2024-11-20)" style="display:none;width:100%;margin-top:6px">`;
-    const t=item.querySelector(".t"), u=item.querySelector(".u"), prov=item.querySelector(".prov"), model=item.querySelector(".model"), custom=item.querySelector(".model-custom");
+      <input class="field model-custom" placeholder="Custom model name (e.g. gpt-4o-2024-11-20)" style="display:none;width:100%;margin-top:6px">
+      <div class="feedrow fr-refresh">
+        <label>Refresh every</label>
+        <input class="field refresh" type="number" min="1" max="9999" step="1" value="${feedRefreshMins(w)}">
+        <span class="ref-unit">min</span>
+      </div>`;
+    const t=item.querySelector(".t"), u=item.querySelector(".u"), prov=item.querySelector(".prov"), model=item.querySelector(".model"), custom=item.querySelector(".model-custom"), refresh=item.querySelector(".refresh");
     function fillModels(){
       const p = w.ai.provider;
       if(p==="off"){ model.innerHTML="<option value=''>—</option>"; model.disabled=true; custom.style.display="none"; return; }
@@ -1804,6 +1930,10 @@ function renderFeedEditor(){
       else { custom.style.display="none"; w.ai.model = model.value; }
     });
     custom.addEventListener("input",()=>{ w.ai.model = custom.value.trim(); });
+    // refresh interval: accept only 1–9999 minutes; clamp live, normalize the field on blur
+    // (a bare number clamps into range; an empty/non-numeric field falls back to the default)
+    refresh.addEventListener("input",()=>{ const v=parseInt(refresh.value,10); if(!isNaN(v)) w.refreshMins=clamp(v,1,9999); });
+    refresh.addEventListener("change",()=>{ const v=parseInt(refresh.value,10); w.refreshMins=isNaN(v)?(state.ai.cacheMinutes||30):clamp(v,1,9999); refresh.value=w.refreshMins; });
     item.querySelector(".w-btn").addEventListener("click",()=>{
       state.widgets = state.widgets.filter(x=>x!==w);
       renderFeedEditor();
@@ -1826,11 +1956,13 @@ document.querySelectorAll("[data-clearkey]").forEach(btn=>{
     save(); render();
   });
 });
-$("#clearRss2json").addEventListener("click",()=>{ $("#rss2jsonKey").value=""; });   // applied on Save
+// Show the "get a key" link only while the rss2json key field is empty.
+function updateRss2jsonLink(){ const a=$("#rss2jsonLink"); if(a) a.style.display = $("#rss2jsonKey").value.trim() ? "none" : ""; }
+$("#rss2jsonKey").addEventListener("input", updateRss2jsonLink);
+$("#clearRss2json").addEventListener("click",()=>{ $("#rss2jsonKey").value=""; updateRss2jsonLink(); });   // applied on Save
 $("#closeSettings").addEventListener("click",()=>{ state=load(); applyTheme(); closeSettings(); render(); });
-$("#addFeedBtn").addEventListener("click",()=>{ addFeed("New feed",""); openSettings(); });
 $("#addFeedBtn2").addEventListener("click",()=>{
-  state.widgets.push({id:"feed_"+(idSeq++)+"_"+Date.now().toString(36), type:"feed", title:"New feed", url:"", pos:firstFreeSpot(4,5), ai:newFeedAI()});
+  state.widgets.push({id:"feed_"+(idSeq++)+"_"+Date.now().toString(36), type:"feed", title:"New feed", url:"", pos:firstFreeSpot(4,5), refreshMins:(state.ai.cacheMinutes||30), ai:newFeedAI()});
   renderFeedEditor();
 });
 $("#addWeatherBtn").addEventListener("click",()=>{ addWeather(); syncSettingsForm(); });
@@ -1840,8 +1972,11 @@ $("#resetLayout").addEventListener("click",()=>{
   // keep user's feeds/settings, reset only positions to a tidy default where ids match
   state.widgets.forEach(w=>{
     const def = d.widgets.find(x=>x.id===w.id);
-    if(def) w.pos = def.pos;
+    if(def){ w.pos = def.pos; w.z = def.z; }
+    w.collapsed = false;                 // un-minimize everything on a layout reset
   });
+  state.zCounter = d.zCounter;
+  recomputeExtent();                     // shrink the canvas back toward 12x9
   save(); render();
 });
 $("#resetAll").addEventListener("click",()=>{
@@ -1888,12 +2023,12 @@ $("#saveSettings").addEventListener("click",()=>{
 });
 overlay.addEventListener("click",e=>{ if(e.target===overlay){ state=load(); applyTheme(); closeSettings(); render(); }});
 
-// keep grid math correct on window resize (placement is fractional, so nothing to do but repaint lines)
-window.addEventListener("resize", applyGridSize);
+// recompute the px cell size (12x9 fills the viewport) on window resize, then repaint the tracks
+window.addEventListener("resize", ()=>{ applyCellSize(); applyGridSize(); });
 
 /* ---------- go ---------- */
 applyTheme();
-render();
+render();               // render() applies cell size + extent before painting
 </script>
 </body>
 </html>

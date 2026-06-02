@@ -3,7 +3,7 @@
 Working list of what's done, what's next, and ideas on deck. Not a contract — priorities can move.
 
 **Legend:** ✅ done · 🛠️ in progress · ⏭️ planned (next up) · 💡 idea / backlog
-_Last updated: 2026-06-01_
+_Last updated: 2026-06-02_
 
 ---
 
@@ -27,7 +27,8 @@ _Last updated: 2026-06-01_
 - [x] Settings persistence + schema migrations (currently `__v: 10`)
 - [x] **Tabbed Settings menu** — Weather & Clock · News Feeds · Photo of the Day · Colors · AI Settings · Advanced; widget show/hide toggles relocated into their tabs + collective "News" show/hide
 - [x] **Clock upgrades** — per-card ⚙ config (analog/digital, show seconds, 24-hour, time zone + subtle tz label), multiple clocks each with its own zone, collective show/hide
-- [x] **Clock time-zone backgrounds** — a faint per-city skyline in the bottom-right of each clock, fading toward the readout, so its location reads at a glance. Skylines are sliced from the source sheet, navy baked to transparent, and repacked into a clean even sprite (`img/tz-skylines.png`); shown on digital + analog, skipped for "Local"
+- [x] **Clock time-zone backgrounds** — a faint per-city skyline in the bottom-right of each clock, fading toward the readout, so its location reads at a glance. Uses a clean 4×5 sprite of white line-art skylines on a transparent background (`img/time-zone-cities-white.png`, tile order matches `CLOCK_ZONES`); shown on digital + analog, including a laptop+clock tile for "Local"
+- [x] **Infinite scrolling canvas + minimizable cards** — the grid is no longer capped to the viewport: cards drag/resize past the edges and the canvas grows + scrolls on both axes (and trims back when they move in), with fixed px cells sized so the base 12×9 still fills the screen. Each card has a minimize button that collapses it to its header bar (freeing the space below); expanding or dragging a card raises it to the top (persisted stacking order). Settings schema `__v: 11`
 - [x] README
 
 ---
@@ -51,13 +52,7 @@ _Last updated: 2026-06-01_
 
 ## 💡 Ideas / Backlog
 
-### Infinite canvas + minimizable cards
-_Pack many windows close together and toggle them, instead of one very tall start page._
-- [ ] **Infinite / scrolling canvas** — today the viewport's width & height cap the usable area and how many widgets fit; instead, let the canvas **scroll vertically *and* horizontally**, growing on demand as cards are placed past the browser edges.
-- [ ] **Minimize button per card** — collapse a card to just its header bar (hide the body content); click again to expand.
-- [ ] **Expand → bring to front** — re-expanding a card (any time its body becomes visible again) immediately gives it the **top z-index**, so tightly-overlapping windows can be toggled open/closed cleanly.
-  - _Notes: the layout is currently a viewport-filling 12×9 CSS grid (`body{overflow:hidden}`, `clamp()`-bounded drag/resize). This shifts to a scrollable canvas whose grid grows past the viewport — `firstFreeSpot`, the drag/resize clamps, and "Reset layout" all assume fixed bounds and would need to follow it. Minimize = a persisted per-card `collapsed` flag (render header only); bring-to-front = a rising z-index counter in state so stacking order survives reload._
-
+- [ ] **Drag-edge auto-scroll** — follow-up to the infinite canvas: auto-pan the canvas when a card is dragged near a viewport edge, so you can fling a card far past the edge in one gesture (today the canvas grows live and you scroll to follow). Isolated to the drag `move` handler.
 - [ ] Import / export settings as a JSON file (backup + move between machines)
 - [ ] Light-theme support with auto-contrast text (when a light background is chosen)
 - [ ] Stocks / crypto ticker widget
