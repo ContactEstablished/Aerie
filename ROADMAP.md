@@ -19,6 +19,8 @@ _Last updated: 2026-06-01_
 - [x] Clock & optional search widget
 - [x] **Search upgrades** — built-in engine selector (Google / Bing / Yahoo) + a custom search-URL option (Dogpile, etc.) set from the card's ⚙; fits cleanly in a 1-row-tall card
 - [x] **Multiple weather cards** — one card per city, each with its own location (Auto-IP / city / GPS) set from the card's ⚙; collective show/hide + per-card cache; units stay global
+- [x] **Reddit RSS images** — decode HTML-encoded ampersands in extracted image URLs (rss2json thumbnails + escaped feed content) so signed `preview.redd.it` URLs no longer 403; also parse Atom `<content>` / `media:thumbnail` in the XML fallback
+- [x] **Reddit post images in AI cards** — in AI "For You" mode, read a Reddit post's actual media from the post page (the clean `i.redd.it` gif/image on `<shreddit-post content-href>`, or signed `preview.redd.it` gallery screenshots, skipping avatars), so image/gallery subs like r/coolgithubprojects show the real demo/screenshots instead of a generic linked-page card
 - [x] Theming — accent color **and** background base color pickers, themed scrollbars
 - [x] Aerie branding — favicon, toolbar logo + wordmark, line-art watermark
 - [x] Settings persistence + schema migrations (currently `__v: 9`)
@@ -42,7 +44,6 @@ _Last updated: 2026-06-01_
   - _Keeps current behavior: first load of the day shows "today's" photo._
 
 ### Feeds (carried over)
-- [ ] **Better Reddit RSS image support** — Reddit `.rss` is Atom; the post image lives in the `<content>` HTML and/or `media:thumbnail`, which the current extractor misses. Fix is in the **image-extraction code** (`pickRSSImage` / rss2json mapping / `pickOgImage`), not the AI prompt (the AI only gets text and returns summaries — it never fetches images). Parse `<content>`/`media:thumbnail`, and for Reddit map `preview.redd.it` / `i.redd.it` links. Example feed: `https://www.reddit.com/r/coolgithubprojects.rss`
 - [ ] Custom-model text entry in the per-feed AI selector (type any model name, not just the curated list)
 - [ ] Thumbnails in the classic (no-key) feed list
 - [ ] Optional rss2json API key field (raise the ~10-item cap per feed)

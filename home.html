@@ -865,7 +865,7 @@ async function parseFeedItems(url, limit){
           link:(it.link||it.guid||"#").trim(),
           when: d && !isNaN(d) ? timeAgo(d) : "",
           desc: it.description || it.content || "",
-          image: it.thumbnail || (it.enclosure && it.enclosure.link) || pickImgFromHtml(it.content||it.description||"")
+          image: fixImgUrl(it.thumbnail || (it.enclosure && (it.enclosure.thumbnail||it.enclosure.link)) || pickImgFromHtml(it.content||it.description||""))
         };
       });
     }
@@ -887,13 +887,30 @@ async function parseFeedItems(url, limit){
     return {title, link, when, desc, image:pickRSSImage(it)};
   });
 }
-function pickImgFromHtml(html){ const m=String(html||"").match(/<img[^>]+src=["']([^"']+)["']/i); return m?m[1]:""; }
+// rss2json and escaped-HTML feed content hand back image URLs with HTML-encoded
+// ampersands (e.g. preview.redd.it/...?width=640&amp;s=SIGNATURE). Left encoded, esc()
+// double-encodes them on render and the signed URL 403s — so normalize &amp; → & first.
+function fixImgUrl(u){ return String(u||"").replace(/&(?:amp|#0*38|#x0*26);/gi, "&"); }
+function pickImgFromHtml(html){ const m=String(html||"").match(/<img[^>]+src=["']([^"']+)["']/i); return m?fixImgUrl(m[1]):""; }
 function pickRSSImage(it){
   const tag=n=>it.getElementsByTagName(n);
   let url = tag("media:content")[0]?.getAttribute("url") || tag("media:thumbnail")[0]?.getAttribute("url");
   if(!url){ const enc=[...tag("enclosure")].find(e=>(e.getAttribute("type")||"").startsWith("image")); url=enc?.getAttribute("url"); }
-  if(!url){ const m=String(tag("content:encoded")[0]?.textContent || it.querySelector("description")?.textContent || "").match(/<img[^>]+src=["']([^"']+)["']/i); if(m) url=m[1]; }
-  return url||"";
+  // Reddit's Atom <content> (and RSS content:encoded) embeds the post image as escaped HTML.
+  if(!url) url = pickImgFromHtml(tag("content:encoded")[0]?.textContent || tag("content")[0]?.textContent || it.querySelector("description,summary")?.textContent || "");
+  return fixImgUrl(url||"");
+}
+// Reddit hides a post's image behind a web component (no og:image), so read it from the
+// post page: single image/gif posts expose a clean i.redd.it URL on <shreddit-post
+// content-href>; galleries and link previews appear as signed preview/external-preview
+// .redd.it URLs in the markup. Skip the author's snoovatar/avatar and award icons.
+function pickRedditPostImage(doc, html){
+  const href = doc.querySelector("shreddit-post")?.getAttribute("content-href") || "";
+  if(/(?:i|preview)\.redd\.it\//i.test(href) && /\.(jpe?g|png|gif|webp)(?:\?|$)/i.test(href)) return fixImgUrl(href);
+  const found = [...String(html||"").matchAll(/https:\/\/(?:external-preview|preview)\.redd\.it\/[^\s"'<>\\]*?[?&](?:amp;)?s=[A-Za-z0-9]{20,}/gi)]
+    .map(m => fixImgUrl(m[0]))
+    .filter(u => !/snoovatar|avatar|defaults|award|emote/i.test(u));
+  return found[0] || "";
 }
 
 /* ---- AI-enhanced feed (DeepSeek) ---- */
@@ -920,11 +937,14 @@ async function buildAIFeed(w, count, ai){
   const items = await parseFeedItems(w.url, count);
   // Visit each article (best effort) for its representative image + real text.
   await mapLimit(items, 4, async it=>{
+    const isReddit = /reddit\.com|redd\.it/i.test(it.link||"");
     try{
       const html = await fetchProxiedText(it.link, 9000);
       const adoc = new DOMParser().parseFromString(html, "text/html");
-      const og = pickOgImage(adoc, it.link);
-      if(og) it.image = og;
+      // Reddit hides the post media in a web component with no og:image — read the actual
+      // posted image (demo gif / gallery screenshot) directly; else fall back to og:image.
+      const img = (isReddit && pickRedditPostImage(adoc, html)) || pickOgImage(adoc, it.link);
+      if(img) it.image = img;
       it.text = pickArticleText(adoc) || stripHtml(it.desc);
     }catch(e){ it.text = stripHtml(it.desc); }
   });
@@ -946,7 +966,7 @@ function pickOgImage(doc, base){
   for(const s of sel){
     const el=doc.querySelector(s);
     const v = el && (el.getAttribute("content")||el.getAttribute("href"));
-    if(v) return absUrl(v.trim(), base);
+    if(v) return fixImgUrl(absUrl(v.trim(), base));
   }
   return "";
 }
