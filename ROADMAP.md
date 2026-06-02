@@ -15,6 +15,7 @@ _Last updated: 2026-06-01_
 - [x] News feeds via rss2json (+ CORS-proxy fallback), add/edit/remove any RSS/Atom
 - [x] AI "For You" cards — article fetch → image + summary, 30-min per-feed cache
 - [x] **Multi-provider AI** — DeepSeek, OpenAI, Anthropic, **provider + model per feed**
+- [x] **Feeds polish** — type a **custom model name** per feed (beyond the curated list); optional **rss2json key** to lift the ~10-item cap; **last-updated / next-refresh** indicators (AI cards show the cache countdown, classic lists show the fetch time)
 - [x] Photo of the Day — Fstoppers POTD / **NASA APOD** / Art Institute / The Met, cached per day; **🔀 shuffle** (a random recent photo — last ~14 days for Fstoppers/APOD) + **📅 reset to today**; show/hide toggle
 - [x] Clock & optional search widget
 - [x] **Search upgrades** — built-in engine selector (Google / Bing / Yahoo) + a custom search-URL option (Dogpile, etc.) set from the card's ⚙; fits cleanly in a 1-row-tall card
@@ -23,7 +24,7 @@ _Last updated: 2026-06-01_
 - [x] **Reddit post images in AI cards** — in AI "For You" mode, read a Reddit post's actual media from the post page (the clean `i.redd.it` gif/image on `<shreddit-post content-href>`, or signed `preview.redd.it` gallery screenshots, skipping avatars), so image/gallery subs like r/coolgithubprojects show the real demo/screenshots instead of a generic linked-page card
 - [x] Theming — accent color **and** background base color pickers, themed scrollbars
 - [x] Aerie branding — favicon, toolbar logo + wordmark, line-art watermark
-- [x] Settings persistence + schema migrations (currently `__v: 9`)
+- [x] Settings persistence + schema migrations (currently `__v: 10`)
 - [x] **Tabbed Settings menu** — Weather & Clock · News Feeds · Photo of the Day · Colors · AI Settings · Advanced; widget show/hide toggles relocated into their tabs + collective "News" show/hide
 - [x] **Clock upgrades** — per-card ⚙ config (analog/digital, show seconds, 24-hour, time zone + subtle tz label), multiple clocks each with its own zone, collective show/hide
 - [x] README
@@ -43,11 +44,8 @@ _Last updated: 2026-06-01_
   - _Approach: a CSS background sprite — `background-size:400% 500%` with a per-zone `background-position` derived from the zone's index (`col = i%4`, `row = ⌊i/4⌋` → `x = col/3·100%`, `y = row/4·100%`), anchored bottom-right of the clock card. **Fade** it toward the time/date text with a gradient mask (e.g. `mask-image: linear-gradient(to top left, #000, transparent)` or a `radial-gradient(... at bottom right ...)`), so it's faint near the readout and strongest in the corner._
   - _Open calls: crop to just the skyline vs. keep each tile's baked-in label (the card already shows the city as its title + tz chip); final opacity; whether it also shows for "Local" and on the analog face. Real filename has a space — `time zone-background.png`, not `time-zone background.png`._
 
-### Feeds (carried over)
-- [ ] Custom-model text entry in the per-feed AI selector (type any model name, not just the curated list)
-- [ ] Thumbnails in the classic (no-key) feed list
-- [ ] Optional rss2json API key field (raise the ~10-item cap per feed)
-- [ ] "Feeds last updated" / next-refresh indicator
+### Feeds
+- [ ] Thumbnails in the classic (no-key) feed list (the image is already fetched per item — just surface it)
 
 ### Repo housekeeping
 - [ ] Add hero screenshot to the README (`img/aerie-screenshot.png`)

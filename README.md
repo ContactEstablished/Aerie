@@ -96,7 +96,8 @@ Everything is **configurable from a Settings panel** and **persists in your brow
 - Two display modes:
   - **Classic** (no AI key) — a clean numbered headline list with relative timestamps.
   - **AI "For You" cards** (with an AI provider key) — see below.
-- Feeds are fetched primarily through **[rss2json](https://rss2json.com/)** (reliable, CORS‑friendly, no key), with a **CORS‑proxy fallback** (`allorigins` → `codetabs`) for anything rss2json can't read.
+- Feeds are fetched primarily through **[rss2json](https://rss2json.com/)** (reliable, CORS‑friendly, no key), with a **CORS‑proxy fallback** (`allorigins` → `codetabs`) for anything rss2json can't read. The free rss2json tier returns ~10 items per feed; add an optional **rss2json API key** in the News Feeds tab to raise that cap.
+- **Freshness at a glance** — the classic list footers an **"updated [time]"**, and AI cards show **"updated … · next refresh in Nm"** against the cache window.
 - Add / edit / remove feeds in Settings. A blank or invalid feed URL is safely ignored (it won't fire network requests).
 
 ### AI Summaries (optional — DeepSeek, OpenAI, or Anthropic)
@@ -106,7 +107,7 @@ Add an API key for one or more of **[DeepSeek](https://platform.deepseek.com/)**
 3. Sends all items for a feed in **one batched call** to the feed's chosen provider, which returns a **single factual sentence** per article.
 4. Renders **headline + one‑line summary + thumbnail**, with a "More from …" link.
 
-**Per‑card control:** each feed independently chooses its **provider and model** — e.g. CNN via Anthropic Haiku, The Verge via OpenAI `gpt-4o-mini`, BBC left as plain headlines. All three providers are called **directly from your browser** (no backend); Anthropic uses its direct‑browser‑access header.
+**Per‑card control:** each feed independently chooses its **provider and model** — e.g. CNN via Anthropic Haiku, The Verge via OpenAI `gpt-4o-mini`, BBC left as plain headlines. The model picker offers a curated list per provider plus a **✎ Custom…** option to type *any* model name (a new release or a fine‑tune). All three providers are called **directly from your browser** (no backend); Anthropic uses its direct‑browser‑access header.
 
 Results are **cached per feed for 30 minutes** (configurable), and the cache keys on provider + model, so switching either rebuilds just that card.
 
@@ -185,7 +186,7 @@ Click **⚙ Settings** (top‑right) to open the configuration modal. Changes pr
 | Section | What you can configure |
 | --- | --- |
 | **Weather** | Units (°F·mph or °C·km/h), show/hide, and **＋ Add weather** for more cities. Each card's location (Auto‑IP / City / GPS) is set from its **⚙**. |
-| **News Feeds** | Add, rename, re‑URL, or remove feeds. Each feed becomes its own widget. |
+| **News Feeds** | Add, rename, re‑URL, or remove feeds (each becomes its own widget); set each feed's **provider + model** (with a **✎ Custom…** model option); optional **rss2json key**. |
 | **AI Summaries** | Enable AI cards; paste/clear a **DeepSeek / OpenAI / Anthropic** key; set **articles per feed** and **cache minutes**. (Provider & model are chosen per feed in **News Feeds**.) |
 | **Photo of the Day** | Source: Fstoppers POTD, NASA APOD, Art Institute of Chicago, or The Met. |
 | **Accent Color** | 8 preset swatches + custom color picker. |
@@ -274,7 +275,7 @@ All free and key‑less, **except the AI providers** (optional, your key):
 | Artwork | [Art Institute of Chicago](https://api.artic.edu/docs/) · [The Met](https://metmuseum.github.io/) | No |
 | Search | Google · Bing · Yahoo · custom URL | No |
 
-> **rss2json note:** The free tier returns up to ~10 items per feed and does **not** support the `count` parameter (that needs a paid key). Aerie intentionally omits `count` so the free tier works; if a feed needs more items or rss2json can't read it, Aerie falls back to the CORS proxy.
+> **rss2json note:** The free tier returns up to ~10 items per feed and does **not** support the `count` parameter (that needs a paid key). Aerie omits `count` unless you add an **rss2json API key** (News Feeds tab) — with a key it sends `count` to raise the cap; without one it stays on the safe free‑tier path. If a feed needs more items or rss2json can't read it, Aerie falls back to the CORS proxy.
 
 ---
 
@@ -284,7 +285,7 @@ Aerie stores everything client‑side. Keys used in `localStorage`:
 
 | Key | Contents | Refresh policy |
 | --- | --- | --- |
-| `myhome.v1` | Main state: layout, widgets, feeds (incl. per‑feed AI provider/model), per‑weather‑card location, units, theme, AI settings (incl. provider API keys), proxy. Versioned via `__v` (currently **9**). | On every change |
+| `myhome.v1` | Main state: layout, widgets, feeds (incl. per‑feed AI provider/model), per‑weather‑card location, units, theme, AI settings (incl. provider API keys), proxy, optional rss2json key. Versioned via `__v` (currently **10**). | On every change |
 | `myhome.feeds` | Built AI "For You" results per feed. | Older than the AI **cache minutes** (default 30) |
 | `myhome.wx` | Last successful weather reading per card (keyed by widget id). | On each successful fetch |
 | `myhome.potd` | The day's photo (per source). | New local day, or manual ⟳ |

@@ -150,6 +150,7 @@
   .feed-item a:hover{background:rgba(91,140,255,0.12);border-color:rgba(91,140,255,0.25)}
   .feed-item .meta{display:block;color:var(--dim);font-size:11px;margin-top:2px}
   .feed-item .num{color:var(--accent);font-weight:700;margin-right:7px;font-variant-numeric:tabular-nums}
+  .feed-updated{font-size:11px;color:var(--dim);margin-top:8px;padding:2px 8px}
 
   /* ---------- Weather ---------- */
   .wx{display:flex;flex-direction:column;height:100%;justify-content:center;gap:6px}
@@ -381,6 +382,11 @@
             <div class="smallnote">Add any site's RSS/Atom URL. Examples — NYT: <code>https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml</code> · Hacker News: <code>https://hnrss.org/frontpage</code> · ESPN: <code>https://www.espn.com/espn/rss/news</code></div>
           </div>
           <div class="sec">
+            <h3>rss2json key (optional)</h3>
+            <div class="row"><label>API key</label><input class="field" id="rss2jsonKey" type="password" placeholder="rss2json API key" autocomplete="off"><button class="btn danger" id="clearRss2json" type="button" style="flex:0 0 auto">Clear</button></div>
+            <div class="smallnote">Feeds load via the free <code>rss2json</code> tier, which returns ~10 items per feed. Add a paid key (<code>rss2json.com</code>) to raise that cap; leave blank to stay on the free tier.</div>
+          </div>
+          <div class="sec">
             <h3>Show / Hide</h3>
             <label class="chk"><input type="checkbox" data-util="news"> News feeds (all feed cards)</label>
           </div>
@@ -522,6 +528,7 @@ function defaultState(){
     ai:{enabled:true, itemsPerFeed:5, cacheMinutes:30, keys:{deepseek:"", openai:"", anthropic:""}},
     theme:{accent:"#5b8cff", bg:"#0b0f1a"},
     proxy:PROXIES[0],
+    rss2jsonKey:"",
     widgets:[
       {id:"cnn",   type:"feed", title:"CNN",        url:"http://rss.cnn.com/rss/cnn_topstories.rss",      pos:{c:0,r:0,w:4,h:6}, ai:{provider:"deepseek", model:"deepseek-chat"}},
       {id:"bbc",   type:"feed", title:"BBC",        url:"http://feeds.bbci.co.uk/news/world/rss.xml",      pos:{c:4,r:0,w:4,h:6}, ai:{provider:"deepseek", model:"deepseek-chat"}},
@@ -596,6 +603,10 @@ function migrate(s){
     (s.widgets||[]).forEach(w=>{ if(w.type==="weather" && !w.weather) w.weather = {mode:L.mode||"ip", city:L.city||""}; });
     try{ localStorage.removeItem("myhome.wx"); }catch(e){}   // cache is now keyed per widget
     s.__v = 9;
+  }
+  if(s.__v < 10){
+    s.rss2jsonKey ??= "";   // optional paid rss2json key to lift the ~10-item-per-feed cap
+    s.__v = 10;
   }
 }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
@@ -852,7 +863,8 @@ async function loadFeedClassic(w, body, needKeyProvider){
         items.map((x,i)=>`<li class="feed-item"><a href="${esc(x.link)}" target="_blank" rel="noopener">
           <span class="num">${i+1}</span>${esc(x.title)}
           ${x.when?`<span class="meta">${esc(x.when)}</span>`:""}</a></li>`).join("")
-      }</ul>`;
+      }</ul>` +
+      `<div class="feed-updated">updated ${esc(new Date().toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}))}</div>`;
   }catch(e){
     body.innerHTML = errorHTML("Couldn't load feed ("+(e.message||e)+")", w.url);
   }
@@ -863,9 +875,12 @@ async function loadFeedClassic(w, body, needKeyProvider){
 // Fallback: CORS proxy + XML parse (covers feeds rss2json can't read).
 async function parseFeedItems(url, limit){
   try{
-    // NOTE: do NOT add &count= — that parameter requires a paid rss2json API key and
-    // makes every request return a 422 error (which silently fell back to the CORS proxies).
-    const j = await fetchJSON("https://api.rss2json.com/v1/api.json?rss_url="+encodeURIComponent(url), 13000);
+    // NOTE: &count= requires a paid rss2json API key; without one it 422s (then silently falls back
+    // to the CORS proxies). So only send count WHEN a key is set — that's what lifts the ~10-item cap.
+    let api = "https://api.rss2json.com/v1/api.json?rss_url="+encodeURIComponent(url);
+    const rkey = (state.rss2jsonKey||"").trim();
+    if(rkey) api += "&api_key="+encodeURIComponent(rkey)+"&count="+(limit||10);
+    const j = await fetchJSON(api, 13000);
     if(j && j.status==="ok" && Array.isArray(j.items) && j.items.length){
       return j.items.slice(0,limit).map(it=>{
         const d = it.pubDate ? new Date(it.pubDate.replace(" ","T")) : null;
@@ -1052,6 +1067,7 @@ function parseSummaries(content){
 
 function renderForYou(w, body, items, ts){
   const updated = ts ? "updated "+timeAgo(new Date(ts)) : "";
+  const nextRef = nextRefreshLabel(ts);
   const home = (()=>{ try{ return new URL(w.url).origin; }catch(e){ return "#"; } })();
   const rows = items.map(x=>`
     <a class="fy-item" href="${esc(x.link)}" target="_blank" rel="noopener">
@@ -1067,7 +1083,7 @@ function renderForYou(w, body, items, ts){
         <span class="fy-bar"></span>
         <div class="fy-htext">
           <div class="fy-title">${esc(w.title||"For You")}</div>
-          <div class="fy-sub">AI-summarized${updated?" · "+esc(updated):""}</div>
+          <div class="fy-sub">AI-summarized${updated?" · "+esc(updated):""}${nextRef?" · "+esc(nextRef):""}</div>
         </div>
       </div>
       <div class="fy-list">${rows||'<div class="state">No items.</div>'}</div>
@@ -1096,6 +1112,13 @@ function timeAgo(d){
   const m=Math.floor(s/60); if(m<60) return m+"m ago";
   const h=Math.floor(m/60); if(h<24) return h+"h ago";
   const dd=Math.floor(h/24); return dd+"d ago";
+}
+// AI feeds cache for `cacheMinutes`; show how long until the next live rebuild.
+function nextRefreshLabel(ts){
+  if(!ts) return "";
+  const remMs = ts + (state.ai.cacheMinutes||30)*60000 - Date.now();
+  if(remMs <= 0) return "refresh due";
+  return "next refresh in "+Math.ceil(remMs/60000)+"m";
 }
 
 /* ---------- Weather ---------- */
@@ -1662,6 +1685,7 @@ function syncSettingsForm(){
   $("#units").value = state.units;
   $("#artSrc").value = state.art.source;
   $("#proxy").value = state.proxy;
+  $("#rss2jsonKey").value = state.rss2jsonKey || "";
   $("#aiEnabled").checked = !!state.ai.enabled;
   const keys = state.ai.keys || {};
   $("#key_deepseek").value = keys.deepseek || "";
@@ -1731,16 +1755,20 @@ function renderFeedEditor(){
         <span class="ai-tag">AI</span>
         <select class="field prov">${provOpts}</select>
         <select class="field model"></select>
-      </div>`;
-    const t=item.querySelector(".t"), u=item.querySelector(".u"), prov=item.querySelector(".prov"), model=item.querySelector(".model");
+      </div>
+      <input class="field model-custom" placeholder="Custom model name (e.g. gpt-4o-2024-11-20)" style="display:none;width:100%;margin-top:6px">`;
+    const t=item.querySelector(".t"), u=item.querySelector(".u"), prov=item.querySelector(".prov"), model=item.querySelector(".model"), custom=item.querySelector(".model-custom");
     function fillModels(){
       const p = w.ai.provider;
-      if(p==="off"){ model.innerHTML="<option value=''>—</option>"; model.disabled=true; return; }
+      if(p==="off"){ model.innerHTML="<option value=''>—</option>"; model.disabled=true; custom.style.display="none"; return; }
       model.disabled=false;
-      let opts = (MODEL_OPTIONS[p]||[]).slice();
+      const known = MODEL_OPTIONS[p]||[];
       if(!w.ai.model) w.ai.model = DEFAULT_MODELS[p];
-      if(w.ai.model && !opts.includes(w.ai.model)) opts = [w.ai.model, ...opts];   // keep a custom/legacy model visible
-      model.innerHTML = opts.map(m=>`<option value="${esc(m)}"${m===w.ai.model?" selected":""}>${esc(m)}</option>`).join("");
+      const isCustom = !!w.ai.model && !known.includes(w.ai.model);   // a typed-in / legacy model name
+      model.innerHTML = known.map(m=>`<option value="${esc(m)}"${m===w.ai.model?" selected":""}>${esc(m)}</option>`).join("")
+                      + `<option value="__custom__"${isCustom?" selected":""}>✎ Custom…</option>`;
+      custom.value = isCustom ? w.ai.model : "";
+      custom.style.display = isCustom ? "block" : "none";
     }
     t.addEventListener("input",()=>{ w.title=t.value; });
     u.addEventListener("input",()=>{ w.url=u.value; });
@@ -1749,7 +1777,11 @@ function renderFeedEditor(){
       if(w.ai.provider!=="off" && !(MODEL_OPTIONS[w.ai.provider]||[]).includes(w.ai.model)) w.ai.model = DEFAULT_MODELS[w.ai.provider];
       fillModels();
     });
-    model.addEventListener("change",()=>{ w.ai.model = model.value; });
+    model.addEventListener("change",()=>{
+      if(model.value==="__custom__"){ custom.style.display="block"; w.ai.model = custom.value.trim(); custom.focus(); }
+      else { custom.style.display="none"; w.ai.model = model.value; }
+    });
+    custom.addEventListener("input",()=>{ w.ai.model = custom.value.trim(); });
     item.querySelector(".w-btn").addEventListener("click",()=>{
       state.widgets = state.widgets.filter(x=>x!==w);
       renderFeedEditor();
@@ -1772,6 +1804,7 @@ document.querySelectorAll("[data-clearkey]").forEach(btn=>{
     save(); render();
   });
 });
+$("#clearRss2json").addEventListener("click",()=>{ $("#rss2jsonKey").value=""; });   // applied on Save
 $("#closeSettings").addEventListener("click",()=>{ state=load(); applyTheme(); closeSettings(); render(); });
 $("#addFeedBtn").addEventListener("click",()=>{ addFeed("New feed",""); openSettings(); });
 $("#addFeedBtn2").addEventListener("click",()=>{
@@ -1798,6 +1831,9 @@ $("#saveSettings").addEventListener("click",()=>{
   state.units = $("#units").value;
   state.art.source = $("#artSrc").value;
   const px = $("#proxy").value.trim(); if(px) state.proxy = px;
+  const prevRss = state.rss2jsonKey||"";
+  state.rss2jsonKey = $("#rss2jsonKey").value.trim();
+  if(prevRss !== state.rss2jsonKey){ try{ localStorage.removeItem("myhome.feeds"); }catch(e){} }   // re-fetch with the new item cap
   // AI settings — if anything that affects feed content changed, drop the feed caches so they rebuild.
   // (Per-feed provider/model are mutated live; the feed cache also keys on provider+model so those self-invalidate.)
   const prevKeys=JSON.stringify(state.ai.keys||{}), prevEnabled=state.ai.enabled, prevCount=state.ai.itemsPerFeed;
