@@ -119,7 +119,8 @@ Results are **cached per feed for 30 minutes** (configurable), and the cache key
 - **Cached for the whole local day** — it loads once and stays put until tomorrow. The ⟳ button forces a fresh one on demand.
 
 ### Clock & Search
-- **Clock** widget: large time, full date, and a time‑of‑day greeting.
+- **Clock** widget: large time, full date, and a time‑of‑day greeting. Per‑card **⚙** options (analog/digital, seconds, 24‑hour, time zone), and you can add multiple clocks for different zones.
+- **Time‑zone skylines** — pick a city zone and a faint line‑art skyline of that city sits in the **bottom‑right** of the card, fading toward the readout, so a wall of clocks reads at a glance. Shown on both digital and analog faces; "Local" stays clean (no skyline).
 - **Search** widget (optional): a search bar with a built‑in **engine selector** — Google, Bing, or Yahoo — plus a **custom search‑URL** option (e.g. Dogpile) set from the card's **⚙**. Fits cleanly in a single‑row card.
 - Both can be toggled on/off in Settings.
 
@@ -346,7 +347,9 @@ aerie/
    ├─ aerie-bg-img.png     # original line-art (for the watermark)
    ├─ aerie-icon.png       # processed: transparent app icon  → favicon + toolbar
    ├─ aerie-wordmark.png   # processed: transparent "aerie" wordmark → toolbar/README
-   └─ aerie-watermark.png  # processed: transparent light line-art → background watermark
+   ├─ aerie-watermark.png  # processed: transparent light line-art → background watermark
+   ├─ time zone-background.png  # source sheet: 4×5 grid of 17 city tiles (skyline + label)
+   └─ tz-skylines.png      # processed: skyline-only, navy→transparent → clock time-zone backdrops
 ```
 
 ---

@@ -27,6 +27,7 @@ _Last updated: 2026-06-01_
 - [x] Settings persistence + schema migrations (currently `__v: 10`)
 - [x] **Tabbed Settings menu** — Weather & Clock · News Feeds · Photo of the Day · Colors · AI Settings · Advanced; widget show/hide toggles relocated into their tabs + collective "News" show/hide
 - [x] **Clock upgrades** — per-card ⚙ config (analog/digital, show seconds, 24-hour, time zone + subtle tz label), multiple clocks each with its own zone, collective show/hide
+- [x] **Clock time-zone backgrounds** — a faint per-city skyline in the bottom-right of each clock, fading toward the readout, so its location reads at a glance. Skylines are sliced from the source sheet, navy baked to transparent, and repacked into a clean even sprite (`img/tz-skylines.png`); shown on digital + analog, skipped for "Local"
 - [x] README
 
 ---
@@ -38,11 +39,6 @@ _Last updated: 2026-06-01_
 ---
 
 ## ⏭️ Planned (next up)
-
-### Clocks
-- [ ] **Time-zone backgrounds** — give each clock a subtle line-art landmark of its city in the **bottom-right corner**, so its location reads at a glance. Asset is ready: `img/time zone-background.png` (1254×1254) is a **4-col × 5-row sprite sheet of 17 city tiles** whose order matches `CLOCK_ZONES` exactly (index 0 = "Local / this device", … 16 = Auckland; last 3 cells blank).
-  - _Approach: a CSS background sprite — `background-size:400% 500%` with a per-zone `background-position` derived from the zone's index (`col = i%4`, `row = ⌊i/4⌋` → `x = col/3·100%`, `y = row/4·100%`), anchored bottom-right of the clock card. **Fade** it toward the time/date text with a gradient mask (e.g. `mask-image: linear-gradient(to top left, #000, transparent)` or a `radial-gradient(... at bottom right ...)`), so it's faint near the readout and strongest in the corner._
-  - _Open calls: crop to just the skyline vs. keep each tile's baked-in label (the card already shows the city as its title + tz chip); final opacity; whether it also shows for "Local" and on the analog face. Real filename has a space — `time zone-background.png`, not `time-zone background.png`._
 
 ### Feeds
 - [ ] Thumbnails in the classic (no-key) feed list (the image is already fetched per item — just surface it)

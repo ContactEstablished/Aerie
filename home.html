@@ -38,7 +38,7 @@
 
   /* centered line-art watermark, behind everything */
   .watermark{position:fixed; inset:0; z-index:0; display:flex; align-items:center; justify-content:center; pointer-events:none}
-  .watermark img{height:75vh; width:auto; max-width:90vw; opacity:.07}
+  .watermark img{height:75vh; width:auto; max-width:90vw; opacity:.2}
 
   /* ---------- Toolbar ---------- */
   .bar{
@@ -204,6 +204,16 @@
   .clock.analog .pin{fill:var(--accent)}
   .clock.analog .ana-meta{flex:0 0 auto;display:flex;gap:8px;align-items:center;font-size:10.5px;color:var(--dim)}
   .clock.analog .ana-meta .tz{background:rgba(255,255,255,0.05);padding:2px 7px;border-radius:6px;font-weight:700;letter-spacing:.5px}
+  /* time-zone skyline backdrop — bottom-right of the clock card, faded toward the readout.
+     One tile of the 4x5 sprite fills the box; the box keeps the tile aspect so it never distorts.
+     Sprite is 1254x1254 → each tile 313.5x250.8 (aspect 5/4). */
+  .clock-bg{position:absolute;right:-17px;bottom:0;height:100%;aspect-ratio:5 / 4;max-width:100%;
+    background-image:url("img/time-zone-cities-white.png");background-repeat:no-repeat;background-size:400% 500%;
+    opacity:.65;pointer-events:none;z-index:0;
+    -webkit-mask-image:linear-gradient(to top left,#000 20%,transparent 72%);
+            mask-image:linear-gradient(to top left,#000 20%,transparent 72%)}
+  .clock{position:relative}
+  .clock>*:not(.clock-bg){position:relative;z-index:1}   /* keep time/date/face above the backdrop */
   /* clock options popover */
   .w.cfg-open{overflow:visible;z-index:60}
   .clock-cfg{position:absolute;top:42px;right:8px;z-index:40;width:212px;
@@ -324,7 +334,7 @@
 </style>
 </head>
 <body>
-  <div class="watermark" aria-hidden="true"><img src="img/aerie-watermark.png" alt=""></div>
+  <div class="watermark" aria-hidden="true"><img src="img/aerie-icon.png" alt=""></div>
   <div class="bar">
     <div class="brand"><img class="ic" src="img/aerie-icon.png" alt="Aerie logo"><img class="word" src="img/aerie-wordmark.png" alt="Aerie"></div>
     <div class="spacer"></div>
@@ -1469,8 +1479,18 @@ function tzLabel(tz){
   try{ const p=new Intl.DateTimeFormat("en-US",{timeZone:tz||undefined, timeZoneName:"short"}).formatToParts(new Date()); return p.find(x=>x.type==="timeZoneName")?.value || ""; }catch(e){ return ""; }
 }
 
+// Time-zone skyline backdrop: map a clock's zone to its tile in the 4x5 sprite.
+// Index 0 (local) is the laptop+clock tile; -1 means the zone wasn't found.
+function clockSkylineBg(cfg){
+  const tz = (cfg && cfg.tz) || "local";
+  const i = CLOCK_ZONES.findIndex(z=>z[0]===tz);
+  if(i < 0) return "";                                  // unknown zone → no backdrop
+  const x = ((i%4)/3*100).toFixed(2), y = (Math.floor(i/4)/4*100).toFixed(2);
+  return `<div class="clock-bg" style="background-position:${x}% ${y}%"></div>`;
+}
 function loadClock(w, body){
   const cfg = w.clock || (w.clock = {tz:"local", seconds:false, hour24:false, analog:false, showTz:false});
+  const sky = clockSkylineBg(cfg);
   if(cfg.analog){
     const ticks = [...Array(12)].map((_,i)=>{
       const a=i*30*Math.PI/180, x1=50+Math.sin(a)*42, y1=50-Math.cos(a)*42, x2=50+Math.sin(a)*46.5, y2=50-Math.cos(a)*46.5;
@@ -1478,6 +1498,7 @@ function loadClock(w, body){
     }).join("");
     body.innerHTML = `
       <div class="clock analog" data-clockid="${esc(w.id)}">
+        ${sky}
         <svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet">
           <circle class="face" cx="50" cy="50" r="47.5"/>${ticks}
           <line class="hand hour" x1="50" y1="50" x2="50" y2="28"/>
@@ -1490,6 +1511,7 @@ function loadClock(w, body){
   } else {
     body.innerHTML = `
       <div class="clock" data-clockid="${esc(w.id)}">
+        ${sky}
         <div class="time">—</div>
         <div class="date"></div>
         <div class="greet"></div>
