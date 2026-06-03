@@ -289,6 +289,14 @@
     display:flex;align-items:center;justify-content:center;transition:filter .12s,transform .05s}
   .td-addbtn:hover{filter:brightness(1.08)}
   .td-addbtn:active{transform:translateY(1px)}
+  /* tag filter bar — click a chip to show only that tag; "All" clears the filter */
+  .td-filter{display:flex;flex-wrap:wrap;gap:5px;flex:0 0 auto}
+  .td-fchip{font-size:11px;line-height:1.6;border-radius:999px;padding:2px 9px;cursor:pointer;font-family:inherit;
+    color:var(--muted);background:rgba(255,255,255,0.05);border:1px solid var(--border);
+    transition:color .12s,background .12s,border-color .12s}
+  .td-fchip:hover{color:var(--text);border-color:var(--border-strong)}
+  .td-fchip.active{color:#fff;background:color-mix(in srgb, var(--accent) 26%, transparent);
+    border-color:color-mix(in srgb, var(--accent) 48%, transparent)}
   .td-list{list-style:none;margin:0;padding:0;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden}
   .td-item{display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:9px;
     border-top:1px solid color-mix(in srgb, var(--border) 70%, transparent);
@@ -335,10 +343,10 @@
     color:var(--text);border-radius:8px;padding:7px 9px;font-size:12.5px;cursor:pointer;font-family:inherit}
   .todo-cfg .td-clear-all:hover{background:rgba(255,255,255,0.1)}
   /* AI tools popover (per-card ✨) — brain dump + auto-prioritize */
-  .todo-ai{position:absolute;top:42px;right:8px;z-index:40;width:268px;max-width:calc(100vw - 24px);
+  .todo-ai{position:absolute;top:42px;right:8px;z-index:40;width:322px;max-width:calc(100vw - 24px);
     background:var(--card-solid);border:1px solid var(--border);border-radius:12px;
-    box-shadow:0 16px 44px rgba(0,0,0,0.55);padding:11px;display:flex;flex-direction:column;gap:9px;
-    max-height:min(72vh,440px);overflow:auto}
+    box-shadow:0 16px 44px rgba(0,0,0,0.55);padding:13px;display:flex;flex-direction:column;gap:10px;
+    max-height:min(80vh,528px);overflow:auto}
   .todo-ai .ta-row{display:flex;align-items:center;gap:8px}
   .todo-ai .ta-lab{font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--muted);
     background:rgba(255,255,255,0.06);border-radius:6px;padding:3px 7px;flex:0 0 auto}
@@ -347,7 +355,7 @@
   .todo-ai .ta-prov:focus{border-color:var(--accent)}
   .todo-ai .ta-sec{display:flex;flex-direction:column;gap:7px;padding-top:9px;border-top:1px solid var(--border)}
   .todo-ai .ta-cap{font-size:11px;font-weight:700;color:var(--text)}
-  .todo-ai .ta-dump{width:100%;resize:vertical;min-height:58px;background:rgba(0,0,0,0.22);
+  .todo-ai .ta-dump{width:100%;resize:vertical;min-height:74px;background:rgba(0,0,0,0.22);
     border:1px solid var(--border);color:var(--text);border-radius:9px;padding:8px 9px;font-size:12.5px;
     outline:none;font-family:inherit;line-height:1.45}
   .todo-ai .ta-dump::placeholder{color:var(--dim)}
@@ -360,7 +368,7 @@
   .todo-ai .ta-results{display:flex;flex-direction:column;gap:7px}
   .todo-ai .ta-rhead{font-size:11px;color:var(--muted)}
   .todo-ai .ta-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;
-    max-height:168px;overflow:auto}
+    max-height:200px;overflow:auto}
   .todo-ai .ta-list label{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text);
     cursor:pointer;padding:3px 2px}
   .todo-ai .ta-list input{width:14px;height:14px;accent-color:var(--accent);flex:0 0 auto}
@@ -369,11 +377,12 @@
   .td-prio-dot.prio-high{background:#ff7a7a}
   .td-prio-dot.prio-med{background:#f0b429}
   .td-prio-dot.prio-low{background:#6f7d93}
-  .todo-ai .ta-add{background:var(--accent-soft);border:1px solid color-mix(in srgb, var(--accent) 28%, transparent);
-    color:color-mix(in srgb, var(--accent) 55%, #fff);border-radius:9px;padding:8px;font-size:12.5px;font-weight:650;
-    cursor:pointer;font-family:inherit}
-  .todo-ai .ta-add:hover{background:color-mix(in srgb, var(--accent) 16%, transparent)}
+  .todo-ai .ta-add{background:linear-gradient(135deg,var(--accent),var(--accent2));border:1px solid transparent;
+    color:#fff;border-radius:9px;padding:9px;font-size:12.5px;font-weight:650;
+    cursor:pointer;font-family:inherit;transition:filter .12s}
+  .todo-ai .ta-add:hover{filter:brightness(1.08)}
   .todo-ai .ta-status{font-size:11px;color:var(--muted)}
+  .todo-ai .ta-hint{color:var(--dim)}
   .todo-ai .ta-busy{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
   .todo-ai .ta-err{font-size:11.5px;color:#ff8b8b;line-height:1.4}
   .todo-ai .ta-need{font-size:12.5px;color:var(--text);line-height:1.5}
@@ -1950,6 +1959,8 @@ function toggleSearchConfig(w, el, body){
 // Tasks persist with the rest of state in localStorage (no separate cache).
 function todoCfg(w){ return w.todo || (w.todo = {items:[], doneBottom:true, hideDone:false}); }
 function newTaskId(){ return "t_"+(idSeq++)+"_"+Date.now().toString(36); }
+// Active tag filter per card (runtime only — resets on reload so tasks never silently vanish).
+const todoFilter = {};
 
 function loadTodo(w, body){
   todoCfg(w);
@@ -1960,6 +1971,7 @@ function loadTodo(w, body){
         <input class="td-input" type="text" placeholder="Add a task…" autocomplete="off" maxlength="500">
         <button class="td-addbtn" type="submit" title="Add task">＋</button>
       </form>
+      <div class="td-filter"></div>
       <ul class="td-list"></ul>
       <div class="td-foot"></div>
     </div>`;
@@ -1970,6 +1982,7 @@ function loadTodo(w, body){
     if(!text) return;
     todoCfg(w).items.push({id:newTaskId(), text, done:false});
     input.value = "";
+    todoFilter[w.id] = null;   // a freshly added task may have no tags — show it
     save(); renderTodoList(w, body);
   });
   renderTodoList(w, body);
@@ -1979,6 +1992,22 @@ function renderTodoList(w, body){
   const cfg = todoCfg(w);
   const list = body.querySelector(".td-list"), foot = body.querySelector(".td-foot");
   if(!list) return;
+  // Tag filter bar — every distinct tag across the card's tasks, plus an "All" chip.
+  const allTags = [...new Set(cfg.items.flatMap(it=>it.tags||[]))].sort();
+  if(todoFilter[w.id] && !allTags.includes(todoFilter[w.id])) todoFilter[w.id] = null;   // chosen tag no longer exists
+  const filterTag = todoFilter[w.id] || null;
+  const fbar = body.querySelector(".td-filter");
+  if(fbar){
+    if(!allTags.length){ fbar.innerHTML = ""; fbar.style.display = "none"; }
+    else {
+      fbar.style.display = "";
+      fbar.innerHTML = `<button class="td-fchip${filterTag?"":" active"}" data-tag="">All</button>`
+        + allTags.map(t=>`<button class="td-fchip${filterTag===t?" active":""}" data-tag="${esc(t)}">${esc(t)}</button>`).join("");
+      fbar.querySelectorAll(".td-fchip").forEach(b=>b.addEventListener("click",()=>{
+        todoFilter[w.id] = b.dataset.tag || null; renderTodoList(w, body);
+      }));
+    }
+  }
   // Order: completed sink to the bottom (optional), then by AI priority (optional), then manual order.
   // Stable throughout via the original index as the final tie-breaker.
   const rank = p => p==="high"?0 : p==="med"?1 : p==="low"?2 : 3;
@@ -1988,9 +2017,12 @@ function renderTodoList(w, body){
     if(cfg.sortByPriority){ const r=rank(a[0].priority)-rank(b[0].priority); if(r) return r; }
     return a[1]-b[1];
   });
-  const shown = order.map(p=>p[0]).filter(it=> cfg.hideDone ? !it.done : true);
+  let shown = order.map(p=>p[0]).filter(it=> cfg.hideDone ? !it.done : true);
+  if(filterTag) shown = shown.filter(it=> (it.tags||[]).includes(filterTag));
   if(!shown.length){
-    const msg = (cfg.items.length && cfg.hideDone) ? "All clear — nothing left to do ✨" : "No tasks yet. Add one above ✨";
+    const msg = filterTag ? `No tasks tagged “${esc(filterTag)}”.`
+      : (cfg.items.length && cfg.hideDone) ? "All clear — nothing left to do ✨"
+      : "No tasks yet. Add one above ✨";
     list.innerHTML = `<li class="td-empty">${msg}</li>`;
   } else {
     list.innerHTML = shown.map(it=>{
@@ -2130,17 +2162,18 @@ function toggleTodoAI(w, el, body){
   } else {
     if(!keyed.some(p=>p.id===cfg.ai.provider)){ cfg.ai.provider = keyed[0].id; cfg.ai.model = DEFAULT_MODELS[cfg.ai.provider]; }
     const provOpts = keyed.map(p=>`<option value="${p.id}"${cfg.ai.provider===p.id?" selected":""}>${esc(p.label)}</option>`).join("");
+    const activeCount = cfg.items.filter(it=>!it.done).length;
     pop.innerHTML = `
       <div class="ta-row"><span class="ta-lab">AI</span><select class="ta-prov" title="Provider">${provOpts}</select></div>
       <div class="ta-sec">
         <div class="ta-cap">Brain dump</div>
-        <textarea class="ta-dump" rows="3" placeholder="Dump everything on your mind — a paragraph is fine. AI splits it into tasks."></textarea>
-        <button class="ta-extract" type="button">✨ Extract tasks</button>
+        <textarea class="ta-dump" rows="4" placeholder="Dump everything on your mind — a paragraph is fine. AI splits it into tasks."></textarea>
+        <button class="ta-extract" type="button">✨ Step 1 — Extract tasks</button>
         <div class="ta-results"></div>
       </div>
       <div class="ta-sec">
-        <button class="ta-organize" type="button">✨ Auto-prioritize &amp; tag</button>
-        <div class="ta-status"></div>
+        <button class="ta-organize" type="button"${activeCount?"":" disabled"} title="${activeCount?"Prioritize and tag your active tasks":"Add some tasks first"}">✨ Auto-prioritize &amp; tag</button>
+        <div class="ta-status">${activeCount?"":'<span class="ta-hint">No active tasks to organize yet.</span>'}</div>
       </div>`;
   }
   el.appendChild(pop);
@@ -2161,13 +2194,15 @@ async function runBrainDump(w, body, pop){
   if(!text){ ta.focus(); return; }
   const ai = todoAIConfig(w);
   if(!ai){ out.innerHTML = `<div class="ta-err">No AI key — add one under ⚙ Settings → AI.</div>`; return; }
+  ta.value = "";   // clear the dump on Extract; restored below if it yields nothing, so text is never lost
   const old = btn.textContent; btn.disabled = true; btn.textContent = "Thinking…";
   out.innerHTML = `<div class="ta-busy"><span class="spinner"></span> Reading your dump…</div>`;
   try{
     const tasks = await aiBrainDump(ai, text);
-    if(!tasks.length){ out.innerHTML = `<div class="ta-err">Couldn't pull any tasks out of that.</div>`; return; }
+    if(!tasks.length){ ta.value = text; out.innerHTML = `<div class="ta-err">Couldn't pull any tasks out of that.</div>`; return; }
     renderDumpResults(w, body, pop, tasks);
   }catch(e){
+    ta.value = text;
     out.innerHTML = `<div class="ta-err">${esc("AI failed — "+(e.message||e))}</div>`;
   }finally{ btn.disabled = false; btn.textContent = old; }
 }
@@ -2182,11 +2217,12 @@ function renderDumpResults(w, body, pop, tasks){
         <span class="ta-pt">${esc(t.text)}</span>
         ${(t.tags||[]).map(tg=>`<span class="td-tag">${esc(tg)}</span>`).join("")}
       </label></li>`).join("")}</ul>
-    <button class="ta-add" type="button">＋ Add selected</button>`;
+    <button class="ta-add" type="button">Step 2 — Add selected</button>`;
   out.querySelector(".ta-add").addEventListener("click",()=>{
     const chosen = [...out.querySelectorAll("input[data-i]")].filter(c=>c.checked).map(c=>tasks[+c.dataset.i]);
     const cfg = todoCfg(w);
     chosen.forEach(t=> cfg.items.push({id:newTaskId(), text:t.text, done:false, priority:t.priority||"", tags:t.tags||[]}));
+    todoFilter[w.id] = null;   // show the new tasks even if a tag filter was active
     save(); renderTodoList(w, body);
     const el = body.closest(".w"), p = el && el.querySelector(".todo-ai"); if(p) closePopover(el, p);
   });
@@ -2216,38 +2252,35 @@ async function runOrganize(w, body, pop){
 /* ============================================================
    Adding widgets
    ============================================================ */
-function firstFreeSpot(w,h){
-  // naive scan for a spot that doesn't overlap existing visible widgets (collapsed cards count as 1 row tall)
-  const occ = (c,r)=> state.widgets.some(x=>!x.hidden &&
-    c < x.pos.c+x.pos.w && c+w > x.pos.c && r < x.pos.r+effH(x) && r+h > x.pos.r);
-  for(let r=0;r<=MAX_ROWS-h;r++)
-    for(let c=0;c<=MAX_COLS-w;c++)
-      if(!occ(c,r)) return {c,r,w,h};
-  // canvas full (shouldn't happen) — append below everything rather than overlap at the origin
-  const bottom = Math.max(0, ...state.widgets.filter(x=>!x.hidden).map(x=>x.pos.r+effH(x)));
-  return {c:0,r:bottom,w,h};
+// New widgets spawn at the top-left so they're always visible — the user then drags them
+// where they want. The newest card renders on top (applyPos hands an unset z the highest
+// counter), and the caller scrolls the canvas back to 0,0 via revealTopLeft().
+function firstFreeSpot(w,h){ return {c:0, r:0, w, h}; }
+function revealTopLeft(){
+  try{ gridScroll.scrollTo({left:0, top:0, behavior:"smooth"}); }
+  catch(e){ gridScroll.scrollLeft = 0; gridScroll.scrollTop = 0; }
 }
 function newFeedAI(){ const p = firstKeyedProvider(); return {provider:p, model: DEFAULT_MODELS[p] || DEFAULT_MODELS.deepseek}; }
 function addFeed(title,url){
   const id = "feed_"+(idSeq++)+"_"+Date.now().toString(36);
   state.widgets.push({id, type:"feed", title:title||"News", url:url||"", pos:firstFreeSpot(4,5), refreshMins:(state.ai.cacheMinutes||30), ai:newFeedAI()});
-  save(); render();
+  save(); render(); revealTopLeft();
 }
 function addClock(){
   const id = "clock_"+(idSeq++)+"_"+Date.now().toString(36);
   state.widgets.push({id, type:"clock", title:"Clock", pos:firstFreeSpot(4,2), clock:{tz:"local", seconds:false, hour24:false, analog:false, showTz:true}});
-  save(); render();
+  save(); render(); revealTopLeft();
 }
 function addWeather(){
   const id = "weather_"+(idSeq++)+"_"+Date.now().toString(36);
   // new card starts on "city" with no city yet → prompts to set one via the ⚙
   state.widgets.push({id, type:"weather", title:"Weather", pos:firstFreeSpot(4,3), weather:{mode:"city", city:""}});
-  save(); render();
+  save(); render(); revealTopLeft();
 }
 function addTodo(){
   const id = "todo_"+(idSeq++)+"_"+Date.now().toString(36);
   state.widgets.push({id, type:"todo", title:"Tasks", pos:firstFreeSpot(4,4), todo:{items:[], doneBottom:true, hideDone:false}});
-  save(); render();
+  save(); render(); revealTopLeft();
 }
 // Widget types that are multi-instance and toggled collectively by one checkbox.
 const COLLECTIVE = {news:"feed", clock:"clock", weather:"weather", todo:"todo"};
@@ -2259,7 +2292,7 @@ function showUtil(type){
     const titles={weather:"Weather",art:"Photo of the Day",clock:"Clock",search:"Search"};
     state.widgets.push({id:type, type, title:titles[type], pos:firstFreeSpot(sz.w,sz.h)});
   }
-  save(); render();
+  save(); render(); revealTopLeft();
 }
 function hideUtil(type){
   const x = state.widgets.find(w=>w.type===type);
@@ -2476,6 +2509,7 @@ $("#saveSettings").addEventListener("click",()=>{
   }
   state.theme.accent = $("#accentCustom").value || state.theme.accent;
   state.theme.bg = $("#bgCustom").value || state.theme.bg;
+  let seeded = false;
   document.querySelectorAll("[data-util]").forEach(cb=>{
     const u = cb.dataset.util, ct = COLLECTIVE[u];
     if(ct){
@@ -2484,12 +2518,14 @@ $("#saveSettings").addEventListener("click",()=>{
         if(ct==="weather") state.widgets.push({id:"weather", type:"weather", title:"Weather", pos:firstFreeSpot(4,3), weather:{mode:"ip", city:""}});
         if(ct==="todo")    state.widgets.push({id:"todo", type:"todo", title:"Tasks", pos:firstFreeSpot(4,4), todo:{items:[], doneBottom:true, hideDone:false}});
         // news: intentionally not auto-created (a feed needs a URL)
+        seeded = true;
       }
       state.widgets.forEach(w=>{ if(w.type===ct) w.hidden = !cb.checked; });
     }
     else if(cb.checked) showUtil(u); else hideUtil(u);
   });
   save(); applyTheme(); render(); closeSettings();
+  if(seeded) revealTopLeft();   // a newly seeded card lands top-left — scroll it into view
 });
 overlay.addEventListener("click",e=>{ if(e.target===overlay){ state=load(); applyTheme(); closeSettings(); render(); }});
 
