@@ -312,6 +312,15 @@
   .td-tag{font-size:10px;line-height:1.7;white-space:nowrap;border-radius:999px;padding:0 6px;
     color:color-mix(in srgb, var(--accent) 62%, #fff);background:var(--accent-soft);
     border:1px solid color-mix(in srgb, var(--accent) 26%, transparent)}
+  /* nudging — amber age badge on stale rows + a card-level summary banner */
+  .td-age{font-size:10px;line-height:1.7;white-space:nowrap;border-radius:999px;padding:0 6px;
+    color:#f0b429;background:rgba(240,180,41,0.12);border:1px solid rgba(240,180,41,0.30)}
+  .td-nudge{display:flex;align-items:center;gap:8px;flex:0 0 auto;font-size:11.5px;color:#f0b429;
+    background:rgba(240,180,41,0.08);border:1px solid rgba(240,180,41,0.22);border-radius:9px;padding:6px 9px}
+  .td-nudge .nudge-txt{flex:1 1 auto;min-width:0}
+  .td-nudge .nudge-review{flex:0 0 auto;background:rgba(240,180,41,0.16);border:1px solid rgba(240,180,41,0.36);
+    color:#f0b429;border-radius:7px;padding:3px 9px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit}
+  .td-nudge .nudge-review:hover{background:rgba(240,180,41,0.26)}
   .td-check{flex:0 0 auto;width:18px;height:18px;border-radius:6px;border:1.5px solid var(--border-strong);
     background:transparent;cursor:pointer;position:relative;transition:border-color .12s,background .12s}
   .td-check:hover{border-color:var(--accent)}
@@ -339,6 +348,11 @@
     box-shadow:0 16px 44px rgba(0,0,0,0.55);padding:11px;display:flex;flex-direction:column;gap:8px}
   .todo-cfg .cc{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text);cursor:pointer}
   .todo-cfg .cc input{width:15px;height:15px;accent-color:var(--accent)}
+  .todo-cfg .cc-row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-top:2px}
+  .todo-cfg .cc-row input{width:56px;background:rgba(255,255,255,0.05);border:1px solid var(--border);
+    color:var(--text);border-radius:7px;padding:5px 7px;font-size:12.5px;outline:none}
+  .todo-cfg .cc-row input:focus{border-color:var(--accent)}
+  .todo-cfg .cc-note{font-size:11px;color:var(--dim);line-height:1.4;margin-top:-2px}
   .todo-cfg .td-clear-all{margin-top:2px;background:rgba(255,255,255,0.05);border:1px solid var(--border);
     color:var(--text);border-radius:8px;padding:7px 9px;font-size:12.5px;cursor:pointer;font-family:inherit}
   .todo-cfg .td-clear-all:hover{background:rgba(255,255,255,0.1)}
@@ -387,6 +401,111 @@
   .todo-ai .ta-err{font-size:11.5px;color:#ff8b8b;line-height:1.4}
   .todo-ai .ta-need{font-size:12.5px;color:var(--text);line-height:1.5}
   .todo-ai .ta-need span{color:var(--muted);font-size:11.5px}
+  /* Review-stale results */
+  .todo-ai .ta-rev-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;
+    max-height:230px;overflow:auto}
+  .todo-ai .ta-rev{border:1px solid var(--border);border-radius:9px;padding:8px;background:rgba(255,255,255,0.02)}
+  .todo-ai .rev-head{display:flex;align-items:center;gap:7px}
+  .todo-ai .rev-text{flex:1 1 auto;min-width:0;font-size:12.5px;color:var(--text);overflow-wrap:anywhere}
+  .todo-ai .rev-chip{flex:0 0 auto;font-size:9.5px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;
+    border-radius:5px;padding:2px 6px}
+  .todo-ai .rev-chip.keep{color:var(--good);background:rgba(62,207,142,0.14)}
+  .todo-ai .rev-chip.drop{color:#ff8b8b;background:rgba(255,139,139,0.14)}
+  .todo-ai .rev-chip.reword{color:color-mix(in srgb, var(--accent) 62%, #fff);background:var(--accent-soft)}
+  .todo-ai .rev-new{font-size:12px;color:var(--text);margin-top:5px;overflow-wrap:anywhere}
+  .todo-ai .rev-reason{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.4}
+  .todo-ai .rev-actions{display:flex;gap:6px;margin-top:7px;flex-wrap:wrap}
+  .todo-ai .rev-btn{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text);
+    border-radius:7px;padding:5px 9px;font-size:11.5px;cursor:pointer;font-family:inherit;transition:background .12s}
+  .todo-ai .rev-btn:hover{background:rgba(255,255,255,0.12)}
+  .todo-ai .rev-btn.danger{color:#ff8b8b;border-color:rgba(255,139,139,0.35)}
+  .todo-ai .rev-btn.danger:hover{background:rgba(255,139,139,0.12)}
+  /* Plan my day */
+  .todo-ai .pl-mode,.todo-ai .pl-window{width:100%;background:rgba(255,255,255,0.05);border:1px solid var(--border);
+    color:var(--text);border-radius:8px;padding:6px 8px;font-size:12.5px;outline:none;font-family:inherit}
+  .todo-ai .pl-mode{cursor:pointer}
+  .todo-ai .pl-window::placeholder{color:var(--dim)}
+  .todo-ai .pl-mode:focus,.todo-ai .pl-window:focus{border-color:var(--accent)}
+  .todo-ai .ta-plan{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:1px solid transparent;
+    border-radius:9px;padding:8px 10px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:inherit;transition:filter .12s}
+  .todo-ai .ta-plan:hover{filter:brightness(1.08)}
+  .todo-ai select:disabled,.todo-ai input:disabled{opacity:.6;cursor:default}
+  .todo-ai .pl-list{list-style:decimal;margin:0;padding:2px 0 0 20px;display:flex;flex-direction:column;gap:7px;
+    max-height:220px;overflow:auto}
+  .todo-ai .pl-list li{font-size:12.5px;color:var(--text);line-height:1.35}
+  .todo-ai .pl-time{display:inline-block;font-weight:700;margin-right:6px;font-variant-numeric:tabular-nums;
+    color:color-mix(in srgb, var(--accent) 62%, #fff)}
+  .todo-ai .pl-text{overflow-wrap:anywhere}
+  .todo-ai .pl-reason{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.4}
+  .todo-ai .pl-actions{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+  .todo-ai .pl-apply,.todo-ai .pl-remind{border-radius:7px;padding:6px 10px;font-size:12px;cursor:pointer;
+    font-family:inherit;transition:background .12s}
+  .todo-ai .pl-remind{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text)}
+  .todo-ai .pl-remind:hover{background:rgba(255,255,255,0.12)}
+  .todo-ai .pl-apply{background:var(--accent-soft);border:1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+    color:color-mix(in srgb, var(--accent) 55%, #fff)}
+  .todo-ai .pl-apply:hover{background:color-mix(in srgb, var(--accent) 16%, transparent)}
+
+  /* ---------- Reminders ---------- */
+  .td-rb{flex:0 0 auto;display:flex;align-items:center;gap:2px}
+  .td-bell{width:22px;height:22px;border:none;background:transparent;color:var(--dim);cursor:pointer;
+    border-radius:6px;font-size:12px;opacity:0;transition:opacity .12s,color .12s,background .12s}
+  .td-item:hover .td-bell{opacity:.8}
+  .td-bell:hover{opacity:1;color:var(--accent);background:var(--accent-soft)}
+  .td-remind{font-size:10px;line-height:1.7;white-space:nowrap;border-radius:999px;padding:0 6px;cursor:pointer;
+    font-family:inherit;color:color-mix(in srgb, var(--accent) 62%, #fff);background:var(--accent-soft);
+    border:1px solid color-mix(in srgb, var(--accent) 26%, transparent)}
+  .td-remind:hover{background:color-mix(in srgb, var(--accent) 18%, transparent)}
+  .td-remind.overdue{color:#ff8b8b;background:rgba(255,139,139,0.12);border-color:rgba(255,139,139,0.32)}
+  /* reminder picker popover (per-card, like .clock-cfg) */
+  .todo-remind{position:absolute;top:42px;right:8px;z-index:40;width:250px;max-width:calc(100vw - 24px);
+    background:var(--card-solid);border:1px solid var(--border);border-radius:12px;
+    box-shadow:0 16px 44px rgba(0,0,0,0.55);padding:11px;display:flex;flex-direction:column;gap:9px}
+  .todo-remind .rm-task{font-size:12px;font-weight:650;color:var(--text);line-height:1.3;overflow-wrap:anywhere}
+  .todo-remind .rm-presets{display:flex;flex-wrap:wrap;gap:5px}
+  .todo-remind .rm-presets button{flex:1 1 auto;background:rgba(255,255,255,0.05);border:1px solid var(--border);
+    color:var(--text);border-radius:8px;padding:6px 7px;font-size:11px;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .todo-remind .rm-presets button:hover{background:rgba(255,255,255,0.1);border-color:var(--border-strong)}
+  .todo-remind .rm-input{background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text);
+    border-radius:8px;padding:6px 8px;font-size:12.5px;outline:none;font-family:inherit;color-scheme:dark}
+  .todo-remind .rm-input:focus{border-color:var(--accent)}
+  .todo-remind .rm-actions{display:flex;gap:6px}
+  .todo-remind .rm-set{flex:1 1 auto;background:linear-gradient(135deg,var(--accent),var(--accent2));
+    border:1px solid transparent;color:#fff;border-radius:8px;padding:7px 9px;font-size:12px;font-weight:600;
+    cursor:pointer;font-family:inherit;transition:filter .12s}
+  .todo-remind .rm-set:hover{filter:brightness(1.08)}
+  .todo-remind .rm-clear{flex:0 0 auto;background:rgba(255,255,255,0.05);border:1px solid var(--border);
+    color:#ff8b8b;border-radius:8px;padding:7px 9px;font-size:12px;cursor:pointer;font-family:inherit}
+  .todo-remind .rm-clear:hover{background:rgba(255,139,139,0.12)}
+  /* ---------- Toasts ---------- */
+  .toast-wrap{position:fixed;right:16px;bottom:16px;z-index:9999;display:flex;flex-direction:column;gap:10px;
+    max-width:min(360px,calc(100vw - 32px));pointer-events:none}
+  .toast{pointer-events:auto;display:flex;gap:10px;align-items:flex-start;
+    background:var(--card-solid);border:1px solid var(--border-strong);border-radius:12px;
+    box-shadow:0 16px 44px rgba(0,0,0,0.55);padding:12px 11px 12px 13px;
+    opacity:0;transform:translateY(10px) scale(.98);transition:opacity .2s,transform .2s}
+  .toast.in{opacity:1;transform:none}
+  .toast.out{opacity:0;transform:translateY(8px) scale(.98)}
+  .toast-ic{font-size:19px;line-height:1.3;flex:0 0 auto}
+  .toast-main{flex:1 1 auto;min-width:0}
+  .toast-msg{font-size:13.5px;font-weight:600;color:var(--text);line-height:1.3;overflow-wrap:anywhere}
+  .toast-sub{font-size:11px;color:var(--dim);margin-top:2px}
+  .toast-acts{display:flex;gap:6px;margin-top:9px;align-items:center;position:relative;flex-wrap:wrap}
+  .toast-btn{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text);border-radius:7px;
+    padding:5px 10px;font-size:12px;cursor:pointer;font-family:inherit;transition:background .12s}
+  .toast-btn:hover{background:rgba(255,255,255,0.12)}
+  .toast-btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));border-color:transparent;color:#fff}
+  .toast-snooze{position:relative}
+  .toast-menu{position:absolute;bottom:calc(100% + 5px);left:0;background:var(--card-solid);
+    border:1px solid var(--border);border-radius:9px;box-shadow:0 12px 32px rgba(0,0,0,0.5);
+    padding:5px;display:flex;flex-direction:column;gap:2px;min-width:132px;z-index:1}
+  .toast-menu[hidden]{display:none}
+  .toast-menu button{background:transparent;border:none;color:var(--text);text-align:left;padding:7px 9px;
+    border-radius:6px;font-size:12.5px;cursor:pointer;font-family:inherit}
+  .toast-menu button:hover{background:rgba(255,255,255,0.08)}
+  .toast-x{flex:0 0 auto;background:transparent;border:none;color:var(--dim);cursor:pointer;font-size:12px;
+    padding:2px 4px;border-radius:6px;line-height:1}
+  .toast-x:hover{color:var(--text);background:rgba(255,255,255,0.1)}
 
   /* AI "For You" feed */
   .foryou{display:flex;flex-direction:column;height:100%}
@@ -600,7 +719,7 @@
             <h3>Task Lists</h3>
             <label class="chk"><input type="checkbox" data-util="todo"> To-do lists (all task cards)</label>
             <button class="btn" id="addTodoBtn" style="margin-top:6px">＋ Add list</button>
-            <div class="smallnote">Add a to-do card — keep several lists (e.g. Work, Home, Groceries). Type a task and press Enter; click the box to complete it, click the text to edit, hover to delete. Each card's display options — sort by priority, completed at bottom, hide completed, clear completed — live under the ⚙ in its header. The <b>✨</b> button adds AI: <b>brain-dump</b> a paragraph into tasks, or <b>auto-prioritize &amp; tag</b> the list (needs an AI key — add one under the <b>AI Settings</b> tab). Tasks are saved in this browser.</div>
+            <div class="smallnote">Add a to-do card — keep several lists (e.g. Work, Home, Groceries). Type a task and press Enter; click the box to complete it, click the text to edit, hover to delete. Each card's options — sort by priority, completed at bottom, hide completed, and <b>nudge after N days</b> (stale-task ⏳ badges) — live under the ⚙ in its header. Set a <b>🔔 reminder</b> on any task (a toast pops while the dashboard is open). The <b>✨</b> button adds AI: <b>brain-dump</b> a paragraph into tasks (it can pull out due times), <b>auto-prioritize &amp; tag</b>, <b>review stale tasks</b>, or <b>plan my day</b> (needs an AI key — add one under the <b>AI Settings</b> tab). Tasks are saved in this browser.</div>
           </div>
         </div>
 
@@ -832,6 +951,13 @@ function migrate(s){
     s.art = s.art || {};
     s.art.apodKey ??= "";   // optional NASA (api.nasa.gov) key for APOD; DEMO_KEY otherwise
     s.__v = 14;
+  }
+  if(s.__v < 15){
+    // Nudging: stamp existing tasks with a creation time so staleness has a clock to run from.
+    // Backfill to "now" (not the past) so nothing is falsely flagged stale the moment this ships.
+    const now = Date.now();
+    (s.widgets||[]).forEach(w=>{ if(w.type==="todo" && w.todo && Array.isArray(w.todo.items)) w.todo.items.forEach(it=>{ it.createdAt ??= now; }); });
+    s.__v = 15;
   }
 }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
@@ -1962,6 +2088,15 @@ function newTaskId(){ return "t_"+(idSeq++)+"_"+Date.now().toString(36); }
 // Active tag filter per card (runtime only — resets on reload so tasks never silently vanish).
 const todoFilter = {};
 
+/* ---- Nudging: how long an active task may sit before it's flagged stale ---- */
+function nudgeDays(cfg){ const n = cfg && cfg.nudgeDays; return n==null ? 7 : clamp(n, 0, 365); }   // 0 = nudging off
+function taskAgeMs(it){ return it.createdAt ? (Date.now() - it.createdAt) : 0; }
+function isStale(it, cfg){ const d = nudgeDays(cfg); return d>0 && !it.done && !!it.createdAt && taskAgeMs(it) >= d*86400000; }
+function ageLabel(it){
+  const d = Math.floor(taskAgeMs(it) / 86400000);
+  return d < 14 ? d+"d" : Math.floor(d/7)+"w";
+}
+
 function loadTodo(w, body){
   todoCfg(w);
   body.classList.add("todo-body");
@@ -1971,6 +2106,7 @@ function loadTodo(w, body){
         <input class="td-input" type="text" placeholder="Add a task…" autocomplete="off" maxlength="500">
         <button class="td-addbtn" type="submit" title="Add task">＋</button>
       </form>
+      <div class="td-nudge"></div>
       <div class="td-filter"></div>
       <ul class="td-list"></ul>
       <div class="td-foot"></div>
@@ -1980,7 +2116,7 @@ function loadTodo(w, body){
     e.preventDefault();
     const text = input.value.trim();
     if(!text) return;
-    todoCfg(w).items.push({id:newTaskId(), text, done:false});
+    todoCfg(w).items.push({id:newTaskId(), text, done:false, createdAt:Date.now()});
     input.value = "";
     todoFilter[w.id] = null;   // a freshly added task may have no tags — show it
     save(); renderTodoList(w, body);
@@ -2008,6 +2144,21 @@ function renderTodoList(w, body){
       }));
     }
   }
+  // Nudge banner — active tasks that have sat past the threshold (a quiet, dismissable-by-acting prompt).
+  const stale = cfg.items.filter(it=>isStale(it,cfg));
+  const nb = body.querySelector(".td-nudge");
+  if(nb){
+    if(!stale.length){ nb.innerHTML = ""; nb.style.display = "none"; }
+    else {
+      nb.style.display = "";
+      const hasAI = !!todoAIConfig(w);
+      nb.innerHTML = `<span class="nudge-ic">⏳</span>`
+        + `<span class="nudge-txt">${stale.length} task${stale.length>1?"s":""} idle ${nudgeDays(cfg)}d+</span>`
+        + (hasAI ? `<button class="nudge-review" type="button">Review</button>` : "");
+      const rb = nb.querySelector(".nudge-review");
+      if(rb) rb.addEventListener("click",()=> toggleTodoAI(w, body.closest(".w"), body));
+    }
+  }
   // Order: completed sink to the bottom (optional), then by AI priority (optional), then manual order.
   // Stable throughout via the original index as the final tie-breaker.
   const rank = p => p==="high"?0 : p==="med"?1 : p==="low"?2 : 3;
@@ -2027,13 +2178,18 @@ function renderTodoList(w, body){
   } else {
     list.innerHTML = shown.map(it=>{
       const prio = it.priority ? " prio-"+esc(it.priority) : "";
+      const stale = isStale(it, cfg);
       const tags = (it.tags && it.tags.length)
         ? `<span class="td-tags">${it.tags.map(t=>`<span class="td-tag">${esc(t)}</span>`).join("")}</span>` : "";
+      const age = stale ? `<span class="td-age" title="Sitting ${ageLabel(it)} — still relevant?">⏳ ${ageLabel(it)}</span>` : "";
+      const remind = (it.remindAt && !it.done)
+        ? `<button class="td-remind${it.remindAt<=Date.now()?" overdue":""}" data-act="remind" title="Reminder — click to change">🔔 ${esc(remindLabel(it.remindAt))}</button>` : "";
+      const bell = (!it.done && !it.remindAt) ? `<button class="td-bell" data-act="remind" title="Set a reminder">🔔</button>` : "";
       return `
-      <li class="td-item${it.done?" done":""}${prio}" data-tid="${esc(it.id)}">
+      <li class="td-item${it.done?" done":""}${prio}${stale?" stale":""}" data-tid="${esc(it.id)}">
         <button class="td-check" data-act="toggle" title="${it.done?"Mark as active":"Mark as done"}" aria-pressed="${it.done}"></button>
-        <div class="td-main"><span class="td-text" data-act="edit" title="Click to edit">${esc(it.text)}</span>${tags}</div>
-        <button class="td-del" data-act="del" title="Delete task">✕</button>
+        <div class="td-main"><span class="td-text" data-act="edit" title="Click to edit">${esc(it.text)}</span>${tags}${age}${remind}</div>
+        <span class="td-rb">${bell}<button class="td-del" data-act="del" title="Delete task">✕</button></span>
       </li>`;
     }).join("");
   }
@@ -2049,6 +2205,7 @@ function renderTodoList(w, body){
     li.querySelector('[data-act="toggle"]').addEventListener("click",()=>{ it.done=!it.done; save(); renderTodoList(w, body); });
     li.querySelector('[data-act="del"]').addEventListener("click",()=>{ cfg.items=cfg.items.filter(x=>x!==it); save(); renderTodoList(w, body); });
     li.querySelector('[data-act="edit"]').addEventListener("click",()=> startEditTask(li, it, w, body));
+    li.querySelectorAll('[data-act="remind"]').forEach(b=>b.addEventListener("click",e=>{ e.stopPropagation(); openReminderPicker(w, it, body); }));
   });
 }
 
@@ -2092,11 +2249,17 @@ function toggleTodoConfig(w, el, body){
     <label class="cc"><input type="checkbox" data-k="sortByPriority"${cfg.sortByPriority?" checked":""}> Sort by priority</label>
     <label class="cc"><input type="checkbox" data-k="doneBottom"${cfg.doneBottom?" checked":""}> Completed at bottom</label>
     <label class="cc"><input type="checkbox" data-k="hideDone"${cfg.hideDone?" checked":""}> Hide completed</label>
+    <div class="cc-row"><span>Nudge after</span><input class="cc-nudge" type="number" min="0" max="365" step="1" value="${nudgeDays(cfg)}"><span>days</span></div>
+    <div class="cc-note">0 = off. Active tasks older than this get a ⏳ badge.</div>
     <button class="td-clear-all" type="button">Clear completed</button>`;
   el.appendChild(pop);
   pop.querySelectorAll("input[data-k]").forEach(inp=>inp.addEventListener("change",()=>{
     cfg[inp.dataset.k] = inp.checked; save(); renderTodoList(w, body);
   }));
+  const nudge = pop.querySelector(".cc-nudge");
+  const applyNudge = ()=>{ const v=parseInt(nudge.value,10); cfg.nudgeDays = isNaN(v)?7:clamp(v,0,365); save(); renderTodoList(w, body); };
+  nudge.addEventListener("input", applyNudge);
+  nudge.addEventListener("change",()=>{ applyNudge(); nudge.value = cfg.nudgeDays; });
   pop.querySelector(".td-clear-all").addEventListener("click",()=> clearTodoDone(w, body));
   const onDoc = ev=>{ if(pop.contains(ev.target) || ev.target.closest('[data-act="config"]')) return; closePopover(el, pop); };
   pop.__onDoc = onDoc;
@@ -2125,12 +2288,15 @@ function normTags(t){ return Array.isArray(t) ? t.map(x=>String(x||"").trim().to
 const TODO_DUMP_SYS = "You turn a messy brain-dump into a clean to-do list. Split the text into individual, "
   + "actionable tasks. Rewrite each as a short, specific, verb-first task (max 12 words). Assign a priority of "
   + '"high", "med", or "low" by urgency/importance, and 0-2 short lowercase tags (e.g. work, home, errand, call, '
-  + 'email, finance, health). Merge obvious duplicates and drop anything that is not a task. Respond ONLY with '
-  + 'JSON shaped exactly as {"tasks":[{"text":"...","priority":"high|med|low","tags":["..."]}]}.';
+  + "email, finance, health). If a task implies a due time or deadline (e.g. \"by Friday\", \"tomorrow 3pm\", "
+  + "\"tonight\"), set `when` to an ISO 8601 local datetime (no timezone), resolved against the provided `now`; "
+  + "otherwise omit `when`. Merge obvious duplicates and drop anything that is not a task. Respond ONLY with JSON "
+  + 'shaped exactly as {"tasks":[{"text":"...","priority":"high|med|low","tags":["..."],"when":"YYYY-MM-DDTHH:MM"}]}.';
 async function aiBrainDump(ai, text){
-  const content = await aiComplete(ai, TODO_DUMP_SYS, JSON.stringify({braindump:text}), 1400);
+  const payload = {now: toLocalInputValue(new Date()), braindump: text};
+  const content = await aiComplete(ai, TODO_DUMP_SYS, JSON.stringify(payload), 1600);
   return aiTasksArray(todoParseJSON(content))
-    .map(t=>({ text:String((t&&t.text)||"").trim(), priority:normPriority(t&&t.priority), tags:normTags(t&&t.tags) }))
+    .map(t=>({ text:String((t&&t.text)||"").trim(), priority:normPriority(t&&t.priority), tags:normTags(t&&t.tags), remindAt:parseWhen(t&&t.when) }))
     .filter(t=>t.text);
 }
 
@@ -2143,6 +2309,24 @@ async function aiOrganize(ai, tasks){
   const content = await aiComplete(ai, TODO_ORG_SYS, JSON.stringify(payload), Math.min(2000, 40*tasks.length+150));
   const byId = {};
   aiTasksArray(todoParseJSON(content)).forEach(t=>{ if(t && t.id!=null) byId[t.id] = {priority:normPriority(t.priority), tags:normTags(t.tags)}; });
+  return byId;
+}
+
+const TODO_REVIEW_SYS = "You review stale to-do items the user hasn't finished. For each task in the input JSON "
+  + "array (id, text, ageDays), pick an action: \"keep\" (still worth doing), \"drop\" (likely no longer relevant "
+  + "or too vague to act on), or \"reword\" (worth keeping but make it clearer and more actionable). Give a brief "
+  + "reason (max 14 words). For reword, include newText (short, verb-first, max 12 words). Keep each id exactly. "
+  + 'Respond ONLY with JSON: {"tasks":[{"id":"...","action":"keep|drop|reword","reason":"...","newText":"..."}]}.';
+function normAction(a){ a=String(a||"").toLowerCase().trim(); return (a==="keep"||a==="drop"||a==="reword")?a:"keep"; }
+async function aiReviewStale(ai, tasks){
+  const payload = tasks.map(t=>({id:t.id, text:t.text, ageDays:Math.floor(taskAgeMs(t)/86400000)}));
+  const content = await aiComplete(ai, TODO_REVIEW_SYS, JSON.stringify(payload), Math.min(2000, 70*tasks.length+150));
+  const byId = {};
+  aiTasksArray(todoParseJSON(content)).forEach(t=>{ if(t && t.id!=null) byId[t.id] = {
+    action: normAction(t.action),
+    reason: String(t.reason||"").trim().slice(0,160),
+    newText: String(t.newText||"").trim().slice(0,200)
+  }; });
   return byId;
 }
 
@@ -2163,6 +2347,7 @@ function toggleTodoAI(w, el, body){
     if(!keyed.some(p=>p.id===cfg.ai.provider)){ cfg.ai.provider = keyed[0].id; cfg.ai.model = DEFAULT_MODELS[cfg.ai.provider]; }
     const provOpts = keyed.map(p=>`<option value="${p.id}"${cfg.ai.provider===p.id?" selected":""}>${esc(p.label)}</option>`).join("");
     const activeCount = cfg.items.filter(it=>!it.done).length;
+    const staleCount = cfg.items.filter(it=>isStale(it,cfg)).length;
     pop.innerHTML = `
       <div class="ta-row"><span class="ta-lab">AI</span><select class="ta-prov" title="Provider">${provOpts}</select></div>
       <div class="ta-sec">
@@ -2174,6 +2359,20 @@ function toggleTodoAI(w, el, body){
       <div class="ta-sec">
         <button class="ta-organize" type="button"${activeCount?"":" disabled"} title="${activeCount?"Prioritize and tag your active tasks":"Add some tasks first"}">✨ Auto-prioritize &amp; tag</button>
         <div class="ta-status">${activeCount?"":'<span class="ta-hint">No active tasks to organize yet.</span>'}</div>
+      </div>
+      <div class="ta-sec">
+        <button class="ta-review" type="button"${staleCount?"":" disabled"} title="${staleCount?"Review tasks that have been sitting a while":"Nothing is stale"}">✨ Review stale${staleCount?` (${staleCount})`:""}</button>
+        <div class="ta-review-out">${staleCount?"":'<span class="ta-hint">Nothing has gone stale yet. 🎉</span>'}</div>
+      </div>
+      <div class="ta-sec">
+        <div class="ta-cap">Plan my day</div>
+        <select class="pl-mode"${activeCount?"":" disabled"}>
+          <option value="order">Ordered list</option>
+          <option value="sched">Time-boxed schedule</option>
+        </select>
+        <input class="pl-window" type="text" placeholder="Time window (optional) — e.g. until 3pm, next 2h"${activeCount?"":" disabled"}>
+        <button class="ta-plan" type="button"${activeCount?"":" disabled"} title="${activeCount?"Build a plan from your active tasks":"Add some tasks first"}">✨ Plan my day</button>
+        <div class="ta-plan-out">${activeCount?"":'<span class="ta-hint">No active tasks to plan yet.</span>'}</div>
       </div>`;
   }
   el.appendChild(pop);
@@ -2183,6 +2382,10 @@ function toggleTodoAI(w, el, body){
   if(ext) ext.addEventListener("click",()=> runBrainDump(w, body, pop));
   const org = pop.querySelector(".ta-organize");
   if(org) org.addEventListener("click",()=> runOrganize(w, body, pop));
+  const rev = pop.querySelector(".ta-review");
+  if(rev) rev.addEventListener("click",()=> runReviewStale(w, body, pop));
+  const plan = pop.querySelector(".ta-plan");
+  if(plan) plan.addEventListener("click",()=> runPlanDay(w, body, pop));
   const onDoc = ev=>{ if(pop.contains(ev.target) || ev.target.closest('[data-act="ai"]')) return; closePopover(el, pop); };
   pop.__onDoc = onDoc;
   setTimeout(()=>document.addEventListener("pointerdown", onDoc), 0);
@@ -2216,12 +2419,13 @@ function renderDumpResults(w, body, pop, tasks){
         ${t.priority?`<span class="td-prio-dot prio-${esc(t.priority)}"></span>`:""}
         <span class="ta-pt">${esc(t.text)}</span>
         ${(t.tags||[]).map(tg=>`<span class="td-tag">${esc(tg)}</span>`).join("")}
+        ${t.remindAt?`<span class="td-remind">🔔 ${esc(remindLabel(t.remindAt))}</span>`:""}
       </label></li>`).join("")}</ul>
     <button class="ta-add" type="button">Step 2 — Add selected</button>`;
   out.querySelector(".ta-add").addEventListener("click",()=>{
     const chosen = [...out.querySelectorAll("input[data-i]")].filter(c=>c.checked).map(c=>tasks[+c.dataset.i]);
     const cfg = todoCfg(w);
-    chosen.forEach(t=> cfg.items.push({id:newTaskId(), text:t.text, done:false, priority:t.priority||"", tags:t.tags||[]}));
+    chosen.forEach(t=> cfg.items.push({id:newTaskId(), text:t.text, done:false, priority:t.priority||"", tags:t.tags||[], createdAt:Date.now(), remindAt:t.remindAt||null}));
     todoFilter[w.id] = null;   // show the new tasks even if a tag filter was active
     save(); renderTodoList(w, body);
     const el = body.closest(".w"), p = el && el.querySelector(".todo-ai"); if(p) closePopover(el, p);
@@ -2247,6 +2451,248 @@ async function runOrganize(w, body, pop){
   }catch(e){
     status.innerHTML = `<span class="ta-err">${esc("AI failed — "+(e.message||e))}</span>`;
   }finally{ btn.disabled = false; btn.textContent = old; }
+}
+
+async function runReviewStale(w, body, pop){
+  const btn = pop.querySelector(".ta-review"), out = pop.querySelector(".ta-review-out");
+  const cfg = todoCfg(w);
+  const stale = cfg.items.filter(it=>isStale(it,cfg));
+  if(!stale.length){ out.innerHTML = `<span class="ta-hint">Nothing's gone stale. 🎉</span>`; return; }
+  const ai = todoAIConfig(w);
+  if(!ai){ out.innerHTML = `<div class="ta-err">No AI key — add one under ⚙ Settings → AI.</div>`; return; }
+  const old = btn.textContent; btn.disabled = true; btn.textContent = "Thinking…";
+  out.innerHTML = `<div class="ta-busy"><span class="spinner"></span> Reviewing ${stale.length} stale task${stale.length===1?"":"s"}…</div>`;
+  try{
+    const map = await aiReviewStale(ai, stale);
+    renderReviewResults(w, body, pop, stale, map);
+  }catch(e){
+    out.innerHTML = `<div class="ta-err">${esc("AI failed — "+(e.message||e))}</div>`;
+  }finally{ btn.disabled = false; btn.textContent = old; }
+}
+
+// Each stale task gets the AI's suggestion + apply controls. keep/reword reset the age clock
+// (so a kept task stops nagging); drop removes it; reword also updates the text.
+function renderReviewResults(w, body, pop, stale, map){
+  const out = pop.querySelector(".ta-review-out");
+  out.innerHTML = `<ul class="ta-rev-list">${stale.map(it=>{
+    const s = map[it.id] || {action:"keep", reason:"", newText:""};
+    const chip = `<span class="rev-chip ${s.action}">${s.action}</span>`;
+    const reword = (s.action==="reword" && s.newText) ? `<div class="rev-new">→ ${esc(s.newText)}</div>` : "";
+    const reason = s.reason ? `<div class="rev-reason">${esc(s.reason)}</div>` : "";
+    const actions = s.action==="drop"
+      ? `<button class="rev-btn danger" data-act="drop">Delete</button><button class="rev-btn" data-act="keep">Keep</button>`
+      : s.action==="reword"
+      ? `<button class="rev-btn" data-act="reword">Apply rewrite</button><button class="rev-btn" data-act="keep">Keep as-is</button>`
+      : `<button class="rev-btn" data-act="keep">Keep (snooze)</button>`;
+    return `<li class="ta-rev" data-tid="${esc(it.id)}">
+      <div class="rev-head">${chip}<span class="rev-text">${esc(it.text)}</span></div>
+      ${reword}${reason}
+      <div class="rev-actions">${actions}</div>
+    </li>`;
+  }).join("")}</ul>`;
+  out.querySelectorAll(".ta-rev").forEach(li=>{
+    const cfg = todoCfg(w), it = cfg.items.find(x=>x.id===li.dataset.tid), s = map[li.dataset.tid] || {};
+    li.querySelectorAll("[data-act]").forEach(b=>b.addEventListener("click",()=>{
+      if(!it) return;
+      const act = b.dataset.act;
+      if(act==="drop"){ cfg.items = cfg.items.filter(x=>x!==it); }
+      else if(act==="reword"){ if(s.newText) it.text = s.newText; it.createdAt = Date.now(); }   // freshen + stop nudging
+      else { it.createdAt = Date.now(); }                                                          // keep/snooze: reset the age clock
+      save(); renderTodoList(w, body);
+      li.remove();
+      if(!out.querySelector(".ta-rev")) out.innerHTML = `<span class="ta-hint">Review complete. ✓</span>`;
+    }));
+  });
+}
+
+/* ---- Plan my day (ordered list or time-boxed schedule) ---- */
+const PLAN_ORDER_SYS = "You plan the user's day. Order these active tasks from do-first to do-last, weighing "
+  + "priority, any due time (remindAt), and the user's time window if one is given. `now` and `window` (may be "
+  + "blank) are provided. Give a brief reason (max 12 words) per task. Keep each id exactly. Respond ONLY with "
+  + 'JSON: {"plan":[{"id":"...","reason":"..."}]}.';
+const PLAN_SCHED_SYS = "You plan the user's day as a realistic time-boxed schedule. Starting from `now` (or the "
+  + "start of the user's `window` if given), give each active task a `start` (ISO 8601 local datetime, no zone), "
+  + "an estimate in whole `minutes`, and a brief reason (max 12 words). Order by priority and due times and do "
+  + "not run past the window. Keep each id exactly. Respond ONLY with JSON: "
+  + '{"plan":[{"id":"...","start":"YYYY-MM-DDTHH:MM","minutes":30,"reason":"..."}]}.';
+function planArray(parsed){ return Array.isArray(parsed) ? parsed : (parsed.plan || parsed.tasks || parsed.result || []); }
+async function aiPlanDay(ai, tasks, mode, windowText){
+  const payload = {
+    now: toLocalInputValue(new Date()),
+    window: windowText || "",
+    tasks: tasks.map(t=>({ id:t.id, text:t.text, priority:t.priority||"", tags:t.tags||[], remindAt: t.remindAt?toLocalInputValue(new Date(t.remindAt)):null }))
+  };
+  const sys = mode==="sched" ? PLAN_SCHED_SYS : PLAN_ORDER_SYS;
+  const content = await aiComplete(ai, sys, JSON.stringify(payload), Math.min(2400, 90*tasks.length+200));
+  return planArray(todoParseJSON(content)).filter(p=>p && p.id!=null);
+}
+function planTimeLabel(start, minutes){
+  const t = new Date(start); if(isNaN(t)) return "";
+  const time = t.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+  return minutes ? `${time} · ${minutes}m` : time;
+}
+async function runPlanDay(w, body, pop){
+  const btn = pop.querySelector(".ta-plan"), out = pop.querySelector(".ta-plan-out");
+  const mode = pop.querySelector(".pl-mode").value, windowText = pop.querySelector(".pl-window").value.trim();
+  const cfg = todoCfg(w), active = cfg.items.filter(it=>!it.done);
+  if(!active.length){ out.innerHTML = `<span class="ta-hint">No active tasks to plan.</span>`; return; }
+  const ai = todoAIConfig(w);
+  if(!ai){ out.innerHTML = `<div class="ta-err">No AI key — add one under ⚙ Settings → AI.</div>`; return; }
+  const old = btn.textContent; btn.disabled = true; btn.textContent = "Thinking…";
+  out.innerHTML = `<div class="ta-busy"><span class="spinner"></span> Planning ${active.length} task${active.length===1?"":"s"}…</div>`;
+  try{
+    const plan = await aiPlanDay(ai, active, mode, windowText);
+    if(!plan.length){ out.innerHTML = `<div class="ta-err">Couldn't build a plan.</div>`; return; }
+    renderPlanResults(w, body, pop, plan, mode);
+  }catch(e){
+    out.innerHTML = `<div class="ta-err">${esc("AI failed — "+(e.message||e))}</div>`;
+  }finally{ btn.disabled = false; btn.textContent = old; }
+}
+function renderPlanResults(w, body, pop, plan, mode){
+  const out = pop.querySelector(".ta-plan-out"), cfg = todoCfg(w);
+  const rows = plan.map(p=>({p, it:cfg.items.find(x=>x.id===p.id)})).filter(r=>r.it);
+  if(!rows.length){ out.innerHTML = `<div class="ta-err">Plan didn't match any tasks.</div>`; return; }
+  out.innerHTML = `<ol class="pl-list">${rows.map(r=>{
+    const time = (mode==="sched" && r.p.start) ? `<span class="pl-time">${esc(planTimeLabel(r.p.start, r.p.minutes))}</span>` : "";
+    const reason = r.p.reason ? `<div class="pl-reason">${esc(r.p.reason)}</div>` : "";
+    return `<li>${time}<span class="pl-text">${esc(r.it.text)}</span>${reason}</li>`;
+  }).join("")}</ol>
+  <div class="pl-actions">
+    <button class="pl-apply" type="button">Apply order</button>
+    ${mode==="sched"?`<button class="pl-remind" type="button">Set reminders</button>`:""}
+  </div>`;
+  out.querySelector(".pl-apply").addEventListener("click",()=>{
+    const order = rows.map(r=>r.it), rest = cfg.items.filter(it=>!order.includes(it));
+    cfg.items = [...order, ...rest];
+    cfg.sortByPriority = false;   // show the planned order, not priority order
+    todoFilter[w.id] = null;
+    save(); renderTodoList(w, body);
+    const el = body.closest(".w"), p = el && el.querySelector(".todo-ai"); if(p) closePopover(el, p);
+  });
+  const rem = out.querySelector(".pl-remind");
+  if(rem) rem.addEventListener("click",()=>{
+    let n = 0;
+    rows.forEach(r=>{ const ts = parseWhen(r.p.start); if(ts){ r.it.remindAt = ts; r.it.remindFired = false; n++; } });
+    save(); renderTodoList(w, body); startReminderTicker();
+    rem.textContent = `Set ${n} reminder${n===1?"":"s"} ✓`; rem.disabled = true;
+  });
+}
+
+/* ---------- Reminders ---------- */
+// Re-render a single to-do card's body in place (used by the ticker + picker so chips refresh).
+function rerenderTodo(w){ const el=document.querySelector(`.w[data-id="${(window.CSS&&CSS.escape)?CSS.escape(w.id):w.id}"] .w-body`); if(el) renderTodoList(w, el); }
+function pad2(n){ return String(n).padStart(2,"0"); }
+function toLocalInputValue(d){ return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate())+"T"+pad2(d.getHours())+":"+pad2(d.getMinutes()); }
+function tomorrow9am(){ const d=new Date(); d.setDate(d.getDate()+1); d.setHours(9,0,0,0); return d.getTime(); }
+function presetTime(p){
+  if(p==="1h")      return Date.now()+3600000;
+  if(p==="tonight"){ const d=new Date(); d.setHours(20,0,0,0); return d.getTime()>Date.now()+300000 ? d.getTime() : Date.now()+7200000; }
+  if(p==="tom9")    return tomorrow9am();
+  return Date.now()+3600000;
+}
+function parseWhen(v){ if(!v) return null; const ms=Date.parse(v); return isNaN(ms)?null:ms; }
+// Compact label for a reminder time: time-only today, "Tomorrow …", else "Mon D …".
+function remindLabel(ts){
+  const d=new Date(ts), now=new Date();
+  const time=d.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"});
+  const tmrw=new Date(now); tmrw.setDate(now.getDate()+1);
+  if(d.toDateString()===now.toDateString())  return time;
+  if(d.toDateString()===tmrw.toDateString()) return "Tomorrow "+time;
+  return d.toLocaleDateString([], {month:"short", day:"numeric"})+" "+time;
+}
+
+// Per-task reminder picker (card-anchored, like the clock/AI popovers).
+function openReminderPicker(w, it, body){
+  const el = body.closest(".w"); if(!el) return;
+  const ex = el.querySelector(".todo-remind"); if(ex){ closePopover(el, ex); return; }
+  el.classList.add("cfg-open");
+  const pop = document.createElement("div");
+  pop.className = "todo-remind";
+  const seed = it.remindAt ? new Date(it.remindAt) : new Date(Date.now()+3600000);
+  pop.innerHTML = `
+    <div class="rm-task"></div>
+    <div class="rm-presets">
+      <button data-p="1h">In 1 hour</button>
+      <button data-p="tonight">Tonight</button>
+      <button data-p="tom9">Tomorrow 9am</button>
+    </div>
+    <input class="rm-input" type="datetime-local" value="${toLocalInputValue(seed)}">
+    <div class="rm-actions">
+      <button class="rm-set" type="button">${it.remindAt?"Update reminder":"Set reminder"}</button>
+      ${it.remindAt?`<button class="rm-clear" type="button">Clear</button>`:""}
+    </div>`;
+  pop.querySelector(".rm-task").textContent = "Remind: "+it.text;
+  el.appendChild(pop);
+  const apply = ts=>{ it.remindAt = ts; it.remindFired = false; save(); rerenderTodo(w); closePopover(el, pop); startReminderTicker(); };
+  pop.querySelectorAll(".rm-presets button").forEach(b=>b.addEventListener("click",()=> apply(presetTime(b.dataset.p))));
+  pop.querySelector(".rm-set").addEventListener("click",()=>{ const v=pop.querySelector(".rm-input").value; const ts=v?new Date(v).getTime():NaN; if(!isNaN(ts)) apply(ts); });
+  const clr = pop.querySelector(".rm-clear");
+  if(clr) clr.addEventListener("click",()=>{ it.remindAt=null; it.remindFired=false; save(); rerenderTodo(w); closePopover(el, pop); });
+  const onDoc = ev=>{ if(pop.contains(ev.target) || ev.target.closest('[data-act="remind"]')) return; closePopover(el, pop); };
+  pop.__onDoc = onDoc;
+  setTimeout(()=>document.addEventListener("pointerdown", onDoc), 0);
+}
+
+// Toast container — slide-in notifications, bottom-right. buildContent(el, close) fills the toast;
+// non-sticky toasts auto-dismiss. Reusable beyond reminders.
+function ensureToastWrap(){ let w=document.querySelector(".toast-wrap"); if(!w){ w=document.createElement("div"); w.className="toast-wrap"; document.body.appendChild(w); } return w; }
+function showToast(buildContent, opts){
+  opts = opts || {};
+  const wrap = ensureToastWrap();
+  const t = document.createElement("div"); t.className = "toast";
+  const close = ()=>{ if(t.__closed) return; t.__closed=true; if(t.__timer) clearTimeout(t.__timer); t.classList.remove("in"); t.classList.add("out"); setTimeout(()=>t.remove(), 240); };
+  buildContent(t, close);
+  wrap.appendChild(t);
+  requestAnimationFrame(()=>t.classList.add("in"));
+  if(!opts.sticky) t.__timer = setTimeout(close, opts.ms || 8000);
+  return close;
+}
+function fireReminderToast(w, it){
+  showToast((t, close)=>{
+    t.innerHTML = `
+      <div class="toast-ic">⏰</div>
+      <div class="toast-main">
+        <div class="toast-msg"></div>
+        <div class="toast-sub">Reminder · ${esc(w.title||"Tasks")}</div>
+        <div class="toast-acts">
+          <button class="toast-btn primary" data-a="done">Done</button>
+          <div class="toast-snooze">
+            <button class="toast-btn" data-a="snooze">Snooze ▾</button>
+            <div class="toast-menu" hidden>
+              <button data-min="10">10 minutes</button>
+              <button data-min="60">1 hour</button>
+              <button data-tom="1">Tomorrow 9am</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <button class="toast-x" data-a="close" title="Dismiss">✕</button>`;
+    t.querySelector(".toast-msg").textContent = it.text;
+    t.querySelector('[data-a="done"]').addEventListener("click",()=>{ it.done=true; it.remindAt=null; save(); rerenderTodo(w); close(); });
+    t.querySelector('[data-a="close"]').addEventListener("click", close);
+    const menu = t.querySelector(".toast-menu");
+    t.querySelector('[data-a="snooze"]').addEventListener("click",()=>{ menu.hidden = !menu.hidden; });
+    menu.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
+      it.remindAt = b.dataset.tom ? tomorrow9am() : Date.now() + parseInt(b.dataset.min,10)*60000;
+      it.remindFired = false; save(); rerenderTodo(w); startReminderTicker(); close();
+    }));
+  }, {sticky:true});
+}
+// Fire any due/overdue reminders (catches up on load too). Marks remindFired so they don't repeat.
+function checkReminders(){
+  const now = Date.now(); let changed = false;
+  for(const w of state.widgets){
+    if(w.type!=="todo" || !w.todo || !Array.isArray(w.todo.items)) continue;
+    for(const it of w.todo.items){
+      if(it.remindAt && !it.remindFired && !it.done && it.remindAt <= now){ it.remindFired=true; changed=true; fireReminderToast(w, it); }
+    }
+  }
+  if(changed){ save(); state.widgets.forEach(w=>{ if(w.type==="todo") rerenderTodo(w); }); }
+}
+function startReminderTicker(){
+  if(window.__remindTicker) return;
+  checkReminders();
+  window.__remindTicker = setInterval(checkReminders, 30000);
 }
 
 /* ============================================================
@@ -2535,6 +2981,7 @@ window.addEventListener("resize", ()=>{ applyCellSize(); applyGridSize(); });
 /* ---------- go ---------- */
 applyTheme();
 render();               // render() applies cell size + extent before painting
+startReminderTicker();  // fire any due/overdue task reminders (and on a 30s tick thereafter)
 </script>
 </body>
 </html>
