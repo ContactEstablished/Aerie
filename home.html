@@ -6,18 +6,27 @@
 <title>Aerie</title>
 <link rel="icon" type="image/png" href="img/aerie-icon.png">
 <link rel="apple-touch-icon" href="img/aerie-icon.png">
+<!-- Inter (variable 400–800) — falls back to the system stack when offline -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap">
 <style>
   /* ---------- Theme ---------- */
   :root{
-    --bg0:#0b0f1a; --bg1:#131a2b;
-    --card:rgba(20,27,45,0.62);
-    --card-solid:#141b2d;
-    --border:rgba(255,255,255,0.08);
-    --line:rgba(255,255,255,0.038);
-    --line-hot:rgba(120,170,255,0.28);
-    --text:#e8edf7; --muted:#93a0bd; --dim:#5f6c89;
-    --accent:#5b8cff; --accent2:#7b6bff;
-    --glow1:rgba(91,140,255,0.18); --glow2:rgba(123,107,255,0.16);
+    /* Refined graphite/navy palette — restrained indigo accent (the accent stays
+       user-customizable via the Colors tab; applyTheme() recolors it live). */
+    --bg0:#071012; --bg1:#0c1622;
+    --card:rgba(13,20,32,0.62);
+    --card-solid:#131c2b;
+    --bg-panel:#0d1420;                       /* opaque panel surface (e.g. thumbnail bg) */
+    --border:rgba(148,163,184,0.14);          /* soft slate border */
+    --border-strong:rgba(148,163,184,0.24);
+    --line:rgba(148,163,184,0.05);
+    --line-hot:rgba(124,140,255,0.28);
+    --text:#e6edf7; --muted:#9aa8bd; --dim:#6f7d93;
+    --accent:#7c8cff; --accent2:#7b6bff;
+    --accent-soft:rgba(124,140,255,0.16);     /* recomputed from --accent in applyTheme() */
+    --glow1:rgba(124,140,255,0.18); --glow2:rgba(123,107,255,0.16);
     --good:#3ecf8e;
     --radius:16px;
     --gap:8px;
@@ -25,7 +34,7 @@
   *{box-sizing:border-box}
   html,body{height:100%;margin:0}
   body{
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-family:Inter,"Geist Sans",Manrope,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     color:var(--text);
     background:
       radial-gradient(1200px 700px at 12% -8%, var(--glow1), transparent 60%),
@@ -131,15 +140,17 @@
   .w-btn:hover{background:rgba(255,255,255,0.1);color:var(--text)}
   .w-body{flex:1 1 auto; min-height:0; overflow-y:auto; overflow-x:hidden; padding:10px 12px}
 
-  /* Themed scrollbars (match the accent color) — Firefox + WebKit */
-  *{scrollbar-width:thin; scrollbar-color:var(--accent) transparent}
-  ::-webkit-scrollbar{width:10px; height:10px}
+  /* Themed scrollbars — thin & soft so they recede behind the content (still accent-tinted) */
+  *{scrollbar-width:thin; scrollbar-color:color-mix(in srgb, var(--accent) 42%, transparent) transparent}
+  ::-webkit-scrollbar{width:8px; height:8px}
   ::-webkit-scrollbar-track{background:transparent}
   ::-webkit-scrollbar-thumb{
-    background:linear-gradient(var(--accent),var(--accent2));
-    border-radius:10px; border:2px solid transparent; background-clip:padding-box;
+    background:color-mix(in srgb, var(--accent) 42%, transparent);
+    border-radius:999px; border:2px solid transparent; background-clip:padding-box;
   }
-  ::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+  ::-webkit-scrollbar-thumb:hover{
+    background:color-mix(in srgb, var(--accent) 68%, transparent); background-clip:padding-box;
+  }
   ::-webkit-scrollbar-corner{background:transparent}
 
   /* resize handle */
@@ -160,7 +171,7 @@
     display:block;color:var(--text);text-decoration:none;font-size:13.5px;line-height:1.35;
     padding:7px 8px;border-radius:9px;border:1px solid transparent;
   }
-  .feed-item a:hover{background:rgba(91,140,255,0.12);border-color:rgba(91,140,255,0.25)}
+  .feed-item a:hover{background:color-mix(in srgb, var(--accent) 12%, transparent);border-color:color-mix(in srgb, var(--accent) 25%, transparent)}
   .feed-item .meta{display:block;color:var(--dim);font-size:11px;margin-top:2px}
   .feed-item .num{color:var(--accent);font-weight:700;margin-right:7px;font-variant-numeric:tabular-nums}
   .feed-updated{font-size:11px;color:var(--dim);margin-top:8px;padding:2px 8px}
@@ -267,23 +278,45 @@
 
   /* AI "For You" feed */
   .foryou{display:flex;flex-direction:column;height:100%}
-  .fy-head{display:flex;align-items:center;gap:10px;margin-bottom:4px;flex:0 0 auto}
-  .fy-bar{width:4px;align-self:stretch;min-height:26px;background:linear-gradient(var(--accent),var(--accent2));border-radius:2px}
-  .fy-title{font-size:13px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase}
-  .fy-sub{font-size:11px;color:var(--muted);margin-top:1px}
+  .fy-head{display:flex;align-items:center;gap:11px;margin-bottom:6px;flex:0 0 auto}
+  /* signature detail: a single soft accent rail (kept restrained, not gradient) */
+  .fy-bar{width:3px;align-self:stretch;min-height:26px;background:var(--accent);border-radius:999px;opacity:.85}
+  .fy-title{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text)}
+  .fy-sub{font-size:11px;color:var(--dim);margin-top:3px;display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+  .fy-pill{
+    background:var(--accent-soft);
+    color:color-mix(in srgb, var(--accent) 60%, #fff);
+    border:1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+    border-radius:999px;padding:2px 8px;font-size:10px;font-weight:600;letter-spacing:.02em;
+    text-transform:none;white-space:nowrap;
+  }
   .fy-list{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden}
-  .fy-item{display:flex;gap:12px;padding:13px 4px;text-decoration:none;color:var(--text);border-top:1px solid var(--border)}
+  /* card-like rows: soft hairline divider + a subtle lift on hover (no hard boxes) */
+  .fy-item{display:flex;gap:12px;padding:12px 8px;text-decoration:none;color:var(--text);
+    border-top:1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    border-radius:10px;transition:background .12s ease}
   .fy-item:first-child{border-top:none}
-  .fy-item:hover{background:rgba(255,255,255,0.025)}
+  .fy-item:hover{background:rgba(255,255,255,0.035)}
   .fy-item:hover .fy-h{color:#fff}
   .fy-text{flex:1 1 auto;min-width:0}
-  .fy-h{font-size:15.5px;font-weight:700;line-height:1.22;letter-spacing:-.2px;overflow-wrap:anywhere}
-  .fy-s{font-size:12.5px;color:var(--muted);margin-top:6px;line-height:1.45;overflow-wrap:anywhere}
-  .fy-thumb{flex:0 0 auto;width:108px;height:74px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,0.05)}
+  .fy-h{font-size:15px;font-weight:650;line-height:1.28;letter-spacing:-.1px;overflow-wrap:anywhere}
+  .fy-s{font-size:13px;font-weight:400;color:var(--muted);margin-top:5px;line-height:1.45;overflow-wrap:anywhere}
+  /* standardized thumbnails: consistent ratio + border, dimmed until the row is hovered */
+  .fy-thumb{flex:0 0 auto;width:108px;aspect-ratio:16/10;border-radius:10px;overflow:hidden;
+    background:var(--bg-panel);border:1px solid var(--border);opacity:.9;transition:opacity .12s ease}
+  .fy-item:hover .fy-thumb{opacity:1}
   .fy-thumb img{width:100%;height:100%;object-fit:cover;display:block}
-  .fy-more{display:block;text-align:center;margin-top:8px;padding:11px;border:1px solid var(--border);border-radius:12px;color:var(--text);text-decoration:none;font-weight:700;font-size:13px;flex:0 0 auto}
-  .fy-more:hover{background:rgba(255,255,255,0.07)}
-  .keyhint{font-size:11.5px;color:var(--accent);background:rgba(91,140,255,0.08);border:1px solid rgba(91,140,255,0.25);padding:7px 9px;border-radius:9px;margin-bottom:8px}
+  /* footer CTA — deliberately accent-tinted so it reads as the one clear action */
+  .fy-more{display:block;text-align:center;margin-top:10px;padding:11px;border-radius:12px;
+    background:var(--accent-soft);
+    border:1px solid color-mix(in srgb, var(--accent) 22%, transparent);
+    color:color-mix(in srgb, var(--accent) 50%, #fff);
+    text-decoration:none;font-weight:650;font-size:13px;flex:0 0 auto;
+    transition:background .12s ease,border-color .12s ease}
+  .fy-more:hover{background:color-mix(in srgb, var(--accent) 16%, transparent);
+    border-color:color-mix(in srgb, var(--accent) 38%, transparent)}
+  .keyhint{font-size:11.5px;color:var(--accent);background:var(--accent-soft);
+    border:1px solid color-mix(in srgb, var(--accent) 28%, transparent);padding:7px 9px;border-radius:9px;margin-bottom:8px}
 
   /* states */
   .state{color:var(--muted);font-size:13px;display:flex;flex-direction:column;gap:8px;align-items:flex-start;padding:6px 2px}
@@ -435,6 +468,15 @@
                 <option value="met">The Met (random)</option>
               </select>
             </div>
+            <!-- NASA API key — only relevant when the APOD source is selected -->
+            <div id="apodKeyWrap" style="display:none">
+              <div class="row">
+                <label>API key</label>
+                <input class="field" id="apodKey" type="password" placeholder="NASA API key (optional)" autocomplete="off">
+                <button class="btn danger" id="clearApodKey" type="button" style="flex:0 0 auto">Clear</button>
+              </div>
+              <div class="smallnote">APOD runs on NASA's shared <code>DEMO_KEY</code> by default, which is rate-limited (~30 requests/hour). Add your own free key for higher limits.<a class="seclink" id="apodKeyLink" href="https://api.nasa.gov/" target="_blank" rel="noopener">get a key ↗</a></div>
+            </div>
             <label class="chk" style="margin-top:8px"><input type="checkbox" data-util="art"> Show Photo of the Day</label>
           </div>
         </div>
@@ -558,9 +600,9 @@ function defaultState(){
     grid:{cols:12, rows:9},   // current canvas extent (grows/shrinks at runtime; 12x9 = the base)
     zCounter:10,              // rising counter for per-card stacking order (bring-to-front)
     units:"us",
-    art:{source:"fstoppers"},
+    art:{source:"fstoppers", apodKey:""},
     ai:{enabled:true, itemsPerFeed:5, cacheMinutes:30, keys:{deepseek:"", openai:"", anthropic:""}},
-    theme:{accent:"#5b8cff", bg:"#0b0f1a"},
+    theme:{accent:"#7c8cff", bg:"#071012"},
     proxy:PROXIES[0],
     rss2jsonKey:"",
     widgets:[
@@ -655,25 +697,39 @@ function migrate(s){
     (s.widgets||[]).forEach(w=>{ if(w.type==="feed") w.refreshMins ??= def; });
     s.__v = 12;
   }
+  if(s.__v < 13){
+    // Refined graphite/navy palette is the new default. Bump anyone still on the
+    // previous defaults; leave custom accent/bg choices untouched.
+    if(!s.theme) s.theme = {};
+    if(!s.theme.accent || s.theme.accent.toLowerCase()==="#5b8cff") s.theme.accent = "#7c8cff";
+    if(!s.theme.bg     || s.theme.bg.toLowerCase()    ==="#0b0f1a") s.theme.bg     = "#071012";
+    s.__v = 13;
+  }
+  if(s.__v < 14){
+    s.art = s.art || {};
+    s.art.apodKey ??= "";   // optional NASA (api.nasa.gov) key for APOD; DEMO_KEY otherwise
+    s.__v = 14;
+  }
 }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 
 /* ---------- Accent theming ---------- */
-const PRESET_ACCENTS = ["#5b8cff","#7b6bff","#e2125a","#ff6b3d","#f4b400","#22c55e","#06b6d4","#ec4899"];
-const PRESET_BGS     = ["#0b0f1a","#0a0a0f","#0d1117","#12101a","#0e1512","#1a1212","#141019","#0a1416"];
-function hexToRgb(h){ h=String(h||"").replace("#",""); if(h.length===3) h=h.split("").map(c=>c+c).join(""); const n=parseInt(h||"5b8cff",16); return {r:(n>>16)&255,g:(n>>8)&255,b:n&255}; }
+const PRESET_ACCENTS = ["#7c8cff","#5b8cff","#5eead4","#e2125a","#ff6b3d","#f4b400","#22c55e","#ec4899"];
+const PRESET_BGS     = ["#071012","#0b0f1a","#0a0a0f","#0d1117","#12101a","#0e1512","#1a1212","#0a1416"];
+function hexToRgb(h){ h=String(h||"").replace("#",""); if(h.length===3) h=h.split("").map(c=>c+c).join(""); const n=parseInt(h||"7c8cff",16); return {r:(n>>16)&255,g:(n>>8)&255,b:n&255}; }
 function rgbaOf(h,a){ const c=hexToRgb(h); return `rgba(${c.r},${c.g},${c.b},${a})`; }
 function rgbToHsl(r,g,b){ r/=255;g/=255;b/=255; const mx=Math.max(r,g,b),mn=Math.min(r,g,b); let h,s,l=(mx+mn)/2; if(mx===mn){h=s=0;}else{const d=mx-mn; s=l>0.5?d/(2-mx-mn):d/(mx+mn); h=(mx===r)?(g-b)/d+(g<b?6:0):(mx===g)?(b-r)/d+2:(r-g)/d+4; h/=6;} return [h,s,l]; }
 function hslToHex(h,s,l){ let r,g,b; if(s===0){r=g=b=l;}else{const q=l<0.5?l*(1+s):l+s-l*s,p=2*l-q,f=(t)=>{ if(t<0)t+=1; if(t>1)t-=1; if(t<1/6)return p+(q-p)*6*t; if(t<1/2)return q; if(t<2/3)return p+(q-p)*(2/3-t)*6; return p; }; r=f(h+1/3);g=f(h);b=f(h-1/3);} return "#"+[r,g,b].map(x=>Math.round(x*255).toString(16).padStart(2,"0")).join(""); }
 function shiftHue(hex,deg){ const c=hexToRgb(hex); const [h,s,l]=rgbToHsl(c.r,c.g,c.b); return hslToHex((h+deg/360+1)%1, s, l); }
 function lighten(hex,dl){ const c=hexToRgb(hex); const [h,s,l]=rgbToHsl(c.r,c.g,c.b); return hslToHex(h, s, Math.max(0,Math.min(1,l+dl))); }
 function applyTheme(){
-  const a = (state.theme && state.theme.accent) || "#5b8cff";
+  const a = (state.theme && state.theme.accent) || "#7c8cff";
   const a2 = shiftHue(a, 26);
-  const bg = (state.theme && state.theme.bg) || "#0b0f1a";
+  const bg = (state.theme && state.theme.bg) || "#071012";
   const r = document.documentElement.style;
   r.setProperty("--accent", a);
   r.setProperty("--accent2", a2);
+  r.setProperty("--accent-soft", rgbaOf(a, 0.16));   // soft accent fill (pills, CTA, hover)
   r.setProperty("--glow1", rgbaOf(a, 0.18));
   r.setProperty("--glow2", rgbaOf(a2, 0.16));
   r.setProperty("--line-hot", rgbaOf(a, 0.30));
@@ -1182,6 +1238,7 @@ function parseSummaries(content){
 function renderForYou(w, body, items, ts){
   const updated = ts ? "updated "+timeAgo(new Date(ts)) : "";
   const nextRef = nextRefreshLabel(ts, w);
+  const meta = [updated, nextRef].filter(Boolean).join(" · ");   // "AI-summarized" now lives in a pill
   const home = (()=>{ try{ return new URL(w.url).origin; }catch(e){ return "#"; } })();
   const rows = items.map(x=>`
     <a class="fy-item" href="${esc(x.link)}" target="_blank" rel="noopener">
@@ -1197,7 +1254,7 @@ function renderForYou(w, body, items, ts){
         <span class="fy-bar"></span>
         <div class="fy-htext">
           <div class="fy-title">${esc(w.title||"For You")}</div>
-          <div class="fy-sub">AI-summarized${updated?" · "+esc(updated):""}${nextRef?" · "+esc(nextRef):""}</div>
+          <div class="fy-sub"><span class="fy-pill">AI-summarized</span>${meta?`<span>${esc(meta)}</span>`:""}</div>
         </div>
       </div>
       <div class="fy-list">${rows||'<div class="state">No items.</div>'}</div>
@@ -1509,7 +1566,11 @@ async function fetchFstoppersList(limit){
 // NASA Astronomy Picture of the Day — official JSON API (CORS-enabled; DEMO_KEY is fine for a
 // once-a-day cached load). start_date/end_date returns the recent window in ONE call for shuffle.
 // The ~weekly video days are skipped (media_type !== "image").
-const APOD_API = "https://api.nasa.gov/planetary/apod?api_key=DEMO_KEY";
+// Uses the user's NASA key (Photo of the Day settings) when set; DEMO_KEY otherwise.
+function apodApi(){
+  const k = (state.art && (state.art.apodKey||"").trim()) || "DEMO_KEY";
+  return "https://api.nasa.gov/planetary/apod?api_key="+encodeURIComponent(k);
+}
 function apodArt(d){
   const img = (d && d.media_type==="image") ? (d.url || d.hdurl) : "";
   if(!img) return null;
@@ -1528,7 +1589,7 @@ async function fetchApodRecent(days){
   for(let back=0; back<2; back++){
     const e=new Date(Date.now()-back*DAY), s=new Date(e.getTime()-(days-1)*DAY);
     try{
-      const arr = await fetchApodJSON(APOD_API+"&start_date="+fmt(s)+"&end_date="+fmt(e));
+      const arr = await fetchApodJSON(apodApi()+"&start_date="+fmt(s)+"&end_date="+fmt(e));
       const arts = (Array.isArray(arr)?arr:[arr]).map(apodArt).filter(Boolean).reverse();   // newest first
       if(arts.length) return arts;
     }catch(err){ if(back) throw err; }
@@ -1826,6 +1887,8 @@ document.querySelectorAll("#settingsTabs .tab").forEach(tab=>tab.addEventListene
 function syncSettingsForm(){
   $("#units").value = state.units;
   $("#artSrc").value = state.art.source;
+  $("#apodKey").value = state.art.apodKey || "";
+  updateApodKeyUI();
   $("#proxy").value = state.proxy;
   $("#rss2jsonKey").value = state.rss2jsonKey || "";
   updateRss2jsonLink();
@@ -1836,8 +1899,8 @@ function syncSettingsForm(){
   $("#key_anthropic").value = keys.anthropic || "";
   $("#aiCount").value = state.ai.itemsPerFeed || 5;
   $("#aiCache").value = state.ai.cacheMinutes || 30;
-  $("#accentCustom").value = state.theme.accent || "#5b8cff";
-  $("#bgCustom").value = state.theme.bg || "#0b0f1a";
+  $("#accentCustom").value = state.theme.accent || "#7c8cff";
+  $("#bgCustom").value = state.theme.bg || "#071012";
   renderSwatches();
   renderBgSwatches();
   document.querySelectorAll("[data-util]").forEach(cb=>{
@@ -1960,6 +2023,15 @@ document.querySelectorAll("[data-clearkey]").forEach(btn=>{
 function updateRss2jsonLink(){ const a=$("#rss2jsonLink"); if(a) a.style.display = $("#rss2jsonKey").value.trim() ? "none" : ""; }
 $("#rss2jsonKey").addEventListener("input", updateRss2jsonLink);
 $("#clearRss2json").addEventListener("click",()=>{ $("#rss2jsonKey").value=""; updateRss2jsonLink(); });   // applied on Save
+
+// NASA key row: shown only for the APOD source; "get a key" link hides once a key is entered.
+function updateApodKeyUI(){
+  const wrap=$("#apodKeyWrap"); if(wrap) wrap.style.display = ($("#artSrc").value==="apod") ? "" : "none";
+  const a=$("#apodKeyLink"); if(a) a.style.display = $("#apodKey").value.trim() ? "none" : "";
+}
+$("#artSrc").addEventListener("change", updateApodKeyUI);
+$("#apodKey").addEventListener("input", updateApodKeyUI);
+$("#clearApodKey").addEventListener("click",()=>{ $("#apodKey").value=""; updateApodKeyUI(); });   // applied on Save
 $("#closeSettings").addEventListener("click",()=>{ state=load(); applyTheme(); closeSettings(); render(); });
 $("#addFeedBtn2").addEventListener("click",()=>{
   state.widgets.push({id:"feed_"+(idSeq++)+"_"+Date.now().toString(36), type:"feed", title:"New feed", url:"", pos:firstFreeSpot(4,5), refreshMins:(state.ai.cacheMinutes||30), ai:newFeedAI()});
@@ -1987,6 +2059,7 @@ $("#resetAll").addEventListener("click",()=>{
 $("#saveSettings").addEventListener("click",()=>{
   state.units = $("#units").value;
   state.art.source = $("#artSrc").value;
+  state.art.apodKey = $("#apodKey").value.trim();
   const px = $("#proxy").value.trim(); if(px) state.proxy = px;
   const prevRss = state.rss2jsonKey||"";
   state.rss2jsonKey = $("#rss2jsonKey").value.trim();
