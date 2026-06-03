@@ -276,6 +276,109 @@
   .search-cfg .cc-url:focus{border-color:var(--accent)}
   .search-cfg .cc-note{font-size:11px;color:var(--dim);line-height:1.45}
 
+  /* ---------- To-Do / Tasks ---------- */
+  .w-body.todo-body{overflow:hidden;padding:10px 12px}
+  .todo{height:100%;display:flex;flex-direction:column;gap:8px}
+  .td-add{display:flex;gap:7px;flex:0 0 auto}
+  .td-input{flex:1;min-width:0;background:rgba(0,0,0,0.22);border:1px solid var(--border);
+    color:var(--text);border-radius:10px;padding:8px 11px;font-size:13.5px;outline:none}
+  .td-input::placeholder{color:var(--dim)}
+  .td-input:focus{border-color:var(--accent)}
+  .td-addbtn{flex:0 0 auto;width:34px;border:1px solid transparent;border-radius:10px;cursor:pointer;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:17px;line-height:1;
+    display:flex;align-items:center;justify-content:center;transition:filter .12s,transform .05s}
+  .td-addbtn:hover{filter:brightness(1.08)}
+  .td-addbtn:active{transform:translateY(1px)}
+  .td-list{list-style:none;margin:0;padding:0;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden}
+  .td-item{display:flex;align-items:center;gap:10px;padding:8px 6px;border-radius:9px;
+    border-top:1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    border-left:3px solid transparent;transition:background .12s ease}
+  .td-item:first-child{border-top:none}
+  .td-item:hover{background:rgba(255,255,255,0.035)}
+  /* AI priority — a quiet colored rail on the left (traffic-light) */
+  .td-item.prio-high{border-left-color:#ff7a7a}
+  .td-item.prio-med{border-left-color:#f0b429}
+  .td-item.prio-low{border-left-color:#6f7d93}
+  .td-main{flex:1 1 auto;min-width:0;display:flex;flex-wrap:wrap;align-items:center;gap:3px 7px}
+  .td-tags{display:inline-flex;gap:4px;flex-wrap:wrap}
+  .td-tag{font-size:10px;line-height:1.7;white-space:nowrap;border-radius:999px;padding:0 6px;
+    color:color-mix(in srgb, var(--accent) 62%, #fff);background:var(--accent-soft);
+    border:1px solid color-mix(in srgb, var(--accent) 26%, transparent)}
+  .td-check{flex:0 0 auto;width:18px;height:18px;border-radius:6px;border:1.5px solid var(--border-strong);
+    background:transparent;cursor:pointer;position:relative;transition:border-color .12s,background .12s}
+  .td-check:hover{border-color:var(--accent)}
+  .td-item.done .td-check{background:var(--accent);border-color:var(--accent)}
+  .td-item.done .td-check::after{content:"";position:absolute;left:5px;top:1px;width:4px;height:9px;
+    border:solid #0b1020;border-width:0 2px 2px 0;transform:rotate(45deg)}
+  .td-text{flex:1 1 auto;min-width:0;font-size:13.5px;line-height:1.35;color:var(--text);
+    cursor:text;overflow-wrap:anywhere}
+  .td-item.done .td-text{color:var(--dim);text-decoration:line-through;text-decoration-color:var(--dim)}
+  .td-edit{flex:1 1 auto;min-width:0;background:rgba(0,0,0,0.22);border:1px solid var(--accent);
+    color:var(--text);border-radius:7px;padding:4px 7px;font-size:13.5px;outline:none;font-family:inherit}
+  .td-del{flex:0 0 auto;width:22px;height:22px;border:none;background:transparent;color:var(--dim);
+    cursor:pointer;border-radius:6px;font-size:12px;opacity:0;transition:opacity .12s,color .12s,background .12s}
+  .td-item:hover .td-del{opacity:1}
+  .td-del:hover{color:#ff8b8b;background:rgba(255,139,139,0.12)}
+  .td-empty{color:var(--dim);font-size:13px;text-align:center;padding:18px 8px;line-height:1.5}
+  .td-foot{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:10px;
+    padding:2px 4px 0;font-size:11.5px;color:var(--dim);min-height:18px}
+  .td-clear{background:transparent;border:none;color:var(--accent);cursor:pointer;font-size:11.5px;
+    font-weight:600;padding:2px 4px;border-radius:6px;font-family:inherit}
+  .td-clear:hover{text-decoration:underline}
+  /* list options popover (per-card) — mirrors .clock-cfg */
+  .todo-cfg{position:absolute;top:42px;right:8px;z-index:40;width:210px;
+    background:var(--card-solid);border:1px solid var(--border);border-radius:12px;
+    box-shadow:0 16px 44px rgba(0,0,0,0.55);padding:11px;display:flex;flex-direction:column;gap:8px}
+  .todo-cfg .cc{display:flex;align-items:center;gap:9px;font-size:13px;color:var(--text);cursor:pointer}
+  .todo-cfg .cc input{width:15px;height:15px;accent-color:var(--accent)}
+  .todo-cfg .td-clear-all{margin-top:2px;background:rgba(255,255,255,0.05);border:1px solid var(--border);
+    color:var(--text);border-radius:8px;padding:7px 9px;font-size:12.5px;cursor:pointer;font-family:inherit}
+  .todo-cfg .td-clear-all:hover{background:rgba(255,255,255,0.1)}
+  /* AI tools popover (per-card ✨) — brain dump + auto-prioritize */
+  .todo-ai{position:absolute;top:42px;right:8px;z-index:40;width:268px;max-width:calc(100vw - 24px);
+    background:var(--card-solid);border:1px solid var(--border);border-radius:12px;
+    box-shadow:0 16px 44px rgba(0,0,0,0.55);padding:11px;display:flex;flex-direction:column;gap:9px;
+    max-height:min(72vh,440px);overflow:auto}
+  .todo-ai .ta-row{display:flex;align-items:center;gap:8px}
+  .todo-ai .ta-lab{font-size:10px;font-weight:700;letter-spacing:.6px;color:var(--muted);
+    background:rgba(255,255,255,0.06);border-radius:6px;padding:3px 7px;flex:0 0 auto}
+  .todo-ai .ta-prov{flex:1;min-width:0;background:rgba(255,255,255,0.05);border:1px solid var(--border);
+    color:var(--text);border-radius:8px;padding:6px 8px;font-size:12.5px;outline:none;cursor:pointer}
+  .todo-ai .ta-prov:focus{border-color:var(--accent)}
+  .todo-ai .ta-sec{display:flex;flex-direction:column;gap:7px;padding-top:9px;border-top:1px solid var(--border)}
+  .todo-ai .ta-cap{font-size:11px;font-weight:700;color:var(--text)}
+  .todo-ai .ta-dump{width:100%;resize:vertical;min-height:58px;background:rgba(0,0,0,0.22);
+    border:1px solid var(--border);color:var(--text);border-radius:9px;padding:8px 9px;font-size:12.5px;
+    outline:none;font-family:inherit;line-height:1.45}
+  .todo-ai .ta-dump::placeholder{color:var(--dim)}
+  .todo-ai .ta-dump:focus{border-color:var(--accent)}
+  .todo-ai .ta-extract,.todo-ai .ta-organize{background:linear-gradient(135deg,var(--accent),var(--accent2));
+    color:#fff;border:1px solid transparent;border-radius:9px;padding:8px 10px;font-size:12.5px;font-weight:600;
+    cursor:pointer;font-family:inherit;transition:filter .12s}
+  .todo-ai .ta-extract:hover,.todo-ai .ta-organize:hover{filter:brightness(1.08)}
+  .todo-ai button:disabled{opacity:.6;cursor:default}
+  .todo-ai .ta-results{display:flex;flex-direction:column;gap:7px}
+  .todo-ai .ta-rhead{font-size:11px;color:var(--muted)}
+  .todo-ai .ta-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px;
+    max-height:168px;overflow:auto}
+  .todo-ai .ta-list label{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--text);
+    cursor:pointer;padding:3px 2px}
+  .todo-ai .ta-list input{width:14px;height:14px;accent-color:var(--accent);flex:0 0 auto}
+  .todo-ai .ta-pt{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+  .td-prio-dot{flex:0 0 auto;width:8px;height:8px;border-radius:50%;background:var(--dim)}
+  .td-prio-dot.prio-high{background:#ff7a7a}
+  .td-prio-dot.prio-med{background:#f0b429}
+  .td-prio-dot.prio-low{background:#6f7d93}
+  .todo-ai .ta-add{background:var(--accent-soft);border:1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+    color:color-mix(in srgb, var(--accent) 55%, #fff);border-radius:9px;padding:8px;font-size:12.5px;font-weight:650;
+    cursor:pointer;font-family:inherit}
+  .todo-ai .ta-add:hover{background:color-mix(in srgb, var(--accent) 16%, transparent)}
+  .todo-ai .ta-status{font-size:11px;color:var(--muted)}
+  .todo-ai .ta-busy{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+  .todo-ai .ta-err{font-size:11.5px;color:#ff8b8b;line-height:1.4}
+  .todo-ai .ta-need{font-size:12.5px;color:var(--text);line-height:1.5}
+  .todo-ai .ta-need span{color:var(--muted);font-size:11.5px}
+
   /* AI "For You" feed */
   .foryou{display:flex;flex-direction:column;height:100%}
   .fy-head{display:flex;align-items:center;gap:11px;margin-bottom:6px;flex:0 0 auto}
@@ -406,6 +509,7 @@
         <button class="tab active" type="button" data-tab="wc">Weather &amp; Clock</button>
         <button class="tab" type="button" data-tab="feeds">News Feeds</button>
         <button class="tab" type="button" data-tab="photo">Photo of the Day</button>
+        <button class="tab" type="button" data-tab="tasks">Tasks</button>
         <button class="tab" type="button" data-tab="colors">Colors</button>
         <button class="tab" type="button" data-tab="ai">AI Settings</button>
         <button class="tab" type="button" data-tab="adv">Advanced</button>
@@ -478,6 +582,16 @@
               <div class="smallnote">APOD runs on NASA's shared <code>DEMO_KEY</code> by default, which is rate-limited (~30 requests/hour). Add your own free key for higher limits.<a class="seclink" id="apodKeyLink" href="https://api.nasa.gov/" target="_blank" rel="noopener">get a key ↗</a></div>
             </div>
             <label class="chk" style="margin-top:8px"><input type="checkbox" data-util="art"> Show Photo of the Day</label>
+          </div>
+        </div>
+
+        <!-- Tasks -->
+        <div class="tabpane" data-pane="tasks">
+          <div class="sec">
+            <h3>Task Lists</h3>
+            <label class="chk"><input type="checkbox" data-util="todo"> To-do lists (all task cards)</label>
+            <button class="btn" id="addTodoBtn" style="margin-top:6px">＋ Add list</button>
+            <div class="smallnote">Add a to-do card — keep several lists (e.g. Work, Home, Groceries). Type a task and press Enter; click the box to complete it, click the text to edit, hover to delete. Each card's display options — sort by priority, completed at bottom, hide completed, clear completed — live under the ⚙ in its header. The <b>✨</b> button adds AI: <b>brain-dump</b> a paragraph into tasks, or <b>auto-prioritize &amp; tag</b> the list (needs an AI key — add one under the <b>AI Settings</b> tab). Tasks are saved in this browser.</div>
           </div>
         </div>
 
@@ -790,7 +904,7 @@ function applyPos(el,w){
 // Raise a card to the top of the stacking order (persisted via the rising counter).
 function bringToFront(w){ w.z = ++state.zCounter; }
 
-const ICONS = {feed:"📰", weather:"⛅", art:"📷", clock:"🕑", search:"🔎"};
+const ICONS = {feed:"📰", weather:"⛅", art:"📷", clock:"🕑", search:"🔎", todo:"✅"};
 
 function render(){
   applyCellSize();          // re-fit px cells to the viewport (handles scrollbar show/hide)
@@ -804,14 +918,16 @@ function render(){
     el.dataset.id = w.id;
     applyPos(el,w);
 
-    const removable = (w.type==="feed" || w.type==="clock" || w.type==="weather");
+    const removable = (w.type==="feed" || w.type==="clock" || w.type==="weather" || w.type==="todo");
     const closeIcon = removable ? "✕" : "–";
-    const closeTitle = w.type==="feed" ? "Remove feed" : w.type==="clock" ? "Remove clock" : w.type==="weather" ? "Remove weather" : "Hide widget";
+    const closeTitle = w.type==="feed" ? "Remove feed" : w.type==="clock" ? "Remove clock" : w.type==="weather" ? "Remove weather" : w.type==="todo" ? "Remove list" : "Hide widget";
     const refreshBtn = (w.type==="feed"||w.type==="art"||w.type==="weather")
       ? `<button class="w-btn" data-act="refresh" title="Refresh">⟳</button>` : "";
-    const cfgTitle = {clock:"Clock options", search:"Search options", weather:"Weather location"};
-    const configBtn = (w.type==="clock" || w.type==="search" || w.type==="weather")
+    const cfgTitle = {clock:"Clock options", search:"Search options", weather:"Weather location", todo:"List options"};
+    const configBtn = (w.type==="clock" || w.type==="search" || w.type==="weather" || w.type==="todo")
       ? `<button class="w-btn" data-act="config" title="${cfgTitle[w.type]}">⚙</button>` : "";
+    const aiBtn = (w.type==="todo")
+      ? `<button class="w-btn" data-act="ai" title="AI tools — brain dump &amp; prioritize">✨</button>` : "";
     // Photo of the Day: 🔀 shuffle a random recent photo · 📅 back to today's pick (shown only after a shuffle)
     const artBtns = (w.type==="art")
       ? `<button class="w-btn" data-act="shuffle" title="Shuffle — a random recent photo">🔀</button>`+
@@ -821,7 +937,7 @@ function render(){
       <div class="w-head">
         <div class="w-title"><span class="ic">${ICONS[w.type]||"▫"}</span><span class="tt">${esc(w.title||w.type)}</span></div>
         <div class="w-btns">
-          ${refreshBtn}${artBtns}${configBtn}
+          ${refreshBtn}${artBtns}${aiBtn}${configBtn}
           <button class="w-btn" data-act="minimize" title="${w.collapsed?"Expand":"Minimize"}">${w.collapsed?"▢":"—"}</button>
           <button class="w-btn" data-act="close" title="${closeTitle}">${closeIcon}</button>
         </div>
@@ -855,9 +971,11 @@ function render(){
     if(tb) tb.addEventListener("click",()=> resetArtToday(w, el.querySelector(".w-body")));
     const cfgB = el.querySelector('[data-act="config"]');
     if(cfgB) cfgB.addEventListener("click",e=>{ e.stopPropagation();
-      const fn = w.type==="search" ? toggleSearchConfig : w.type==="weather" ? toggleWeatherConfig : toggleClockConfig;
+      const fn = w.type==="search" ? toggleSearchConfig : w.type==="weather" ? toggleWeatherConfig : w.type==="todo" ? toggleTodoConfig : toggleClockConfig;
       fn(w, el, el.querySelector(".w-body"));
     });
+    const aiB = el.querySelector('[data-act="ai"]');
+    if(aiB) aiB.addEventListener("click",e=>{ e.stopPropagation(); toggleTodoAI(w, el, el.querySelector(".w-body")); });
 
     loadWidget(w, el.querySelector(".w-body"));
   }
@@ -986,6 +1104,7 @@ function loadWidget(w, body){
   if(w.type==="art")     return loadArt(w, body);
   if(w.type==="clock")   return loadClock(w, body);
   if(w.type==="search")  return loadSearch(w, body);
+  if(w.type==="todo")    return loadTodo(w, body);
 }
 
 /* ---------- News feed ---------- */
@@ -1179,16 +1298,13 @@ const SUMMARY_SYS = "You are a concise news editor. For each article in the inpu
   + "non-clickbait sentence (max 22 words) capturing the key point. No markdown. "
   + 'Respond ONLY with JSON shaped exactly as {"summaries":["...","..."]}, in the same order as the input.';
 
-// Summarize via the feed's chosen provider. `ai` = {provider, model, key}.
-async function aiSummarize(ai, articles){
-  if(!articles.length) return [];
-  const maxTok = Math.min(2000, 70*articles.length + 120);
-  const user = JSON.stringify(articles);
+// One-shot JSON completion via the chosen provider. `ai` = {provider, model, key}.
+// Returns the model's raw text (expected to be a JSON object). Shared by feed summaries
+// and the to-do AI tools. Anthropic uses the Messages API (with the browser-access opt-in
+// header for CORS); OpenAI/DeepSeek use the OpenAI-compatible chat-completions shape.
+async function aiComplete(ai, system, user, maxTok){
   const label = PROVIDER_LABEL[ai.provider] || ai.provider;
-  let content;
-
   if(ai.provider === "anthropic"){
-    // Anthropic Messages API — requires the direct-browser-access opt-in header for CORS.
     const r = await fetchWithTimeout("https://api.anthropic.com/v1/messages", 60000, {
       method:"POST",
       headers:{
@@ -1200,33 +1316,39 @@ async function aiSummarize(ai, articles){
       body: JSON.stringify({
         model: ai.model,
         max_tokens: maxTok,
-        system: SUMMARY_SYS + " Output only the JSON object, nothing else.",
+        system: system + " Output only the JSON object, nothing else.",
         messages:[{role:"user", content:user}]
       })
     });
     if(!r.ok){ const t=await r.text().catch(()=>""); throw new Error(label+" "+r.status+(t?": "+aiErr(t):"")); }
     const j = await r.json();
-    content = (j.content || []).map(b=>b.text||"").join("") || "{}";
-  } else {
-    // OpenAI-compatible chat completions (OpenAI + DeepSeek)
-    const endpoint = ai.provider==="openai"
-      ? "https://api.openai.com/v1/chat/completions"
-      : "https://api.deepseek.com/chat/completions";
-    const r = await fetchWithTimeout(endpoint, 60000, {
-      method:"POST",
-      headers:{"Content-Type":"application/json","Authorization":"Bearer "+ai.key},
-      body: JSON.stringify({
-        model: ai.model,
-        messages:[{role:"system",content:SUMMARY_SYS},{role:"user",content:user}],
-        response_format:{type:"json_object"},
-        temperature:0.2,
-        max_tokens: maxTok
-      })
-    });
-    if(!r.ok){ const t=await r.text().catch(()=>""); throw new Error(label+" "+r.status+(t?": "+aiErr(t):"")); }
-    const j = await r.json();
-    content = j.choices?.[0]?.message?.content || "{}";
+    return (j.content || []).map(b=>b.text||"").join("") || "{}";
   }
+  // OpenAI-compatible chat completions (OpenAI + DeepSeek)
+  const endpoint = ai.provider==="openai"
+    ? "https://api.openai.com/v1/chat/completions"
+    : "https://api.deepseek.com/chat/completions";
+  const r = await fetchWithTimeout(endpoint, 60000, {
+    method:"POST",
+    headers:{"Content-Type":"application/json","Authorization":"Bearer "+ai.key},
+    body: JSON.stringify({
+      model: ai.model,
+      messages:[{role:"system",content:system},{role:"user",content:user}],
+      response_format:{type:"json_object"},
+      temperature:0.2,
+      max_tokens: maxTok
+    })
+  });
+  if(!r.ok){ const t=await r.text().catch(()=>""); throw new Error(label+" "+r.status+(t?": "+aiErr(t):"")); }
+  const j = await r.json();
+  return j.choices?.[0]?.message?.content || "{}";
+}
+
+// Summarize via the feed's chosen provider. `ai` = {provider, model, key}.
+async function aiSummarize(ai, articles){
+  if(!articles.length) return [];
+  const maxTok = Math.min(2000, 70*articles.length + 120);
+  const content = await aiComplete(ai, SUMMARY_SYS, JSON.stringify(articles), maxTok);
   return parseSummaries(content);
 }
 function aiErr(t){ try{ const j=JSON.parse(t); return (j.error && (j.error.message||j.error.type)) || t.slice(0,160); }catch(e){ return t.slice(0,160); } }
@@ -1823,6 +1945,274 @@ function toggleSearchConfig(w, el, body){
   setTimeout(()=>document.addEventListener("pointerdown", onDoc), 0);
 }
 
+/* ---------- To-Do / Tasks ---------- */
+// Each card keeps its own list in w.todo = {items:[{id,text,done}], doneBottom, hideDone}.
+// Tasks persist with the rest of state in localStorage (no separate cache).
+function todoCfg(w){ return w.todo || (w.todo = {items:[], doneBottom:true, hideDone:false}); }
+function newTaskId(){ return "t_"+(idSeq++)+"_"+Date.now().toString(36); }
+
+function loadTodo(w, body){
+  todoCfg(w);
+  body.classList.add("todo-body");
+  body.innerHTML = `
+    <div class="todo">
+      <form class="td-add">
+        <input class="td-input" type="text" placeholder="Add a task…" autocomplete="off" maxlength="500">
+        <button class="td-addbtn" type="submit" title="Add task">＋</button>
+      </form>
+      <ul class="td-list"></ul>
+      <div class="td-foot"></div>
+    </div>`;
+  const input = body.querySelector(".td-input");
+  body.querySelector(".td-add").addEventListener("submit", e=>{
+    e.preventDefault();
+    const text = input.value.trim();
+    if(!text) return;
+    todoCfg(w).items.push({id:newTaskId(), text, done:false});
+    input.value = "";
+    save(); renderTodoList(w, body);
+  });
+  renderTodoList(w, body);
+}
+
+function renderTodoList(w, body){
+  const cfg = todoCfg(w);
+  const list = body.querySelector(".td-list"), foot = body.querySelector(".td-foot");
+  if(!list) return;
+  // Order: completed sink to the bottom (optional), then by AI priority (optional), then manual order.
+  // Stable throughout via the original index as the final tie-breaker.
+  const rank = p => p==="high"?0 : p==="med"?1 : p==="low"?2 : 3;
+  let order = cfg.items.map((it,i)=>[it,i]);
+  order.sort((a,b)=>{
+    if(cfg.doneBottom && a[0].done!==b[0].done) return a[0].done?1:-1;
+    if(cfg.sortByPriority){ const r=rank(a[0].priority)-rank(b[0].priority); if(r) return r; }
+    return a[1]-b[1];
+  });
+  const shown = order.map(p=>p[0]).filter(it=> cfg.hideDone ? !it.done : true);
+  if(!shown.length){
+    const msg = (cfg.items.length && cfg.hideDone) ? "All clear — nothing left to do ✨" : "No tasks yet. Add one above ✨";
+    list.innerHTML = `<li class="td-empty">${msg}</li>`;
+  } else {
+    list.innerHTML = shown.map(it=>{
+      const prio = it.priority ? " prio-"+esc(it.priority) : "";
+      const tags = (it.tags && it.tags.length)
+        ? `<span class="td-tags">${it.tags.map(t=>`<span class="td-tag">${esc(t)}</span>`).join("")}</span>` : "";
+      return `
+      <li class="td-item${it.done?" done":""}${prio}" data-tid="${esc(it.id)}">
+        <button class="td-check" data-act="toggle" title="${it.done?"Mark as active":"Mark as done"}" aria-pressed="${it.done}"></button>
+        <div class="td-main"><span class="td-text" data-act="edit" title="Click to edit">${esc(it.text)}</span>${tags}</div>
+        <button class="td-del" data-act="del" title="Delete task">✕</button>
+      </li>`;
+    }).join("");
+  }
+  const total = cfg.items.length, done = cfg.items.filter(it=>it.done).length;
+  foot.innerHTML = total
+    ? `<span class="td-count">${done} of ${total} done</span>`+(done?`<button class="td-clear" type="button">Clear completed</button>`:"")
+    : "";
+  const clr = foot.querySelector(".td-clear");
+  if(clr) clr.addEventListener("click",()=> clearTodoDone(w, body));
+  list.querySelectorAll(".td-item").forEach(li=>{
+    const it = cfg.items.find(x=>x.id===li.dataset.tid);
+    if(!it) return;
+    li.querySelector('[data-act="toggle"]').addEventListener("click",()=>{ it.done=!it.done; save(); renderTodoList(w, body); });
+    li.querySelector('[data-act="del"]').addEventListener("click",()=>{ cfg.items=cfg.items.filter(x=>x!==it); save(); renderTodoList(w, body); });
+    li.querySelector('[data-act="edit"]').addEventListener("click",()=> startEditTask(li, it, w, body));
+  });
+}
+
+// Inline-edit a task: swap the text span for an input. Enter/blur commits, Escape cancels, empty deletes.
+function startEditTask(li, it, w, body){
+  const span = li.querySelector(".td-text");
+  if(!span || li.querySelector(".td-edit")) return;
+  const inp = document.createElement("input");
+  inp.className = "td-edit"; inp.type = "text"; inp.value = it.text; inp.maxLength = 500;
+  span.replaceWith(inp);
+  inp.focus(); inp.setSelectionRange(inp.value.length, inp.value.length);
+  let settled = false;
+  const commit = keep=>{
+    if(settled) return; settled = true;
+    const v = inp.value.trim();
+    if(keep){ if(v) it.text = v; else todoCfg(w).items = todoCfg(w).items.filter(x=>x!==it); }
+    save(); renderTodoList(w, body);
+  };
+  inp.addEventListener("keydown",e=>{
+    if(e.key==="Enter"){ e.preventDefault(); commit(true); }
+    else if(e.key==="Escape"){ e.preventDefault(); commit(false); }
+  });
+  inp.addEventListener("blur",()=> commit(true));
+}
+
+function clearTodoDone(w, body){
+  const cfg = todoCfg(w);
+  cfg.items = cfg.items.filter(it=>!it.done);
+  save(); renderTodoList(w, body);
+}
+
+// In-card list-options popover, opened by the ⚙ in the header (mirrors the clock's).
+function toggleTodoConfig(w, el, body){
+  const existing = el.querySelector(".todo-cfg");
+  if(existing){ closePopover(el, existing); return; }
+  el.classList.add("cfg-open");
+  const cfg = todoCfg(w);
+  const pop = document.createElement("div");
+  pop.className = "todo-cfg";
+  pop.innerHTML = `
+    <label class="cc"><input type="checkbox" data-k="sortByPriority"${cfg.sortByPriority?" checked":""}> Sort by priority</label>
+    <label class="cc"><input type="checkbox" data-k="doneBottom"${cfg.doneBottom?" checked":""}> Completed at bottom</label>
+    <label class="cc"><input type="checkbox" data-k="hideDone"${cfg.hideDone?" checked":""}> Hide completed</label>
+    <button class="td-clear-all" type="button">Clear completed</button>`;
+  el.appendChild(pop);
+  pop.querySelectorAll("input[data-k]").forEach(inp=>inp.addEventListener("change",()=>{
+    cfg[inp.dataset.k] = inp.checked; save(); renderTodoList(w, body);
+  }));
+  pop.querySelector(".td-clear-all").addEventListener("click",()=> clearTodoDone(w, body));
+  const onDoc = ev=>{ if(pop.contains(ev.target) || ev.target.closest('[data-act="config"]')) return; closePopover(el, pop); };
+  pop.__onDoc = onDoc;
+  setTimeout(()=>document.addEventListener("pointerdown", onDoc), 0);
+}
+
+/* ---- To-Do AI tools (brain dump + auto-prioritize/tag) ---- */
+// Resolve this card's effective AI config, or null if no usable key. Honors the card's
+// chosen provider when it has a key; otherwise falls back to any keyed provider.
+function todoAIConfig(w){
+  const cfg = (w.todo && w.todo.ai) || {};
+  const keys = (state.ai && state.ai.keys) || {};
+  let p = cfg.provider;
+  if(!p || p==="off" || !keys[p]) p = firstKeyedProvider();
+  if(!p || p==="off" || !keys[p]) return null;
+  return {provider:p, model:(cfg.provider===p && cfg.model) ? cfg.model : DEFAULT_MODELS[p], key:keys[p]};
+}
+function todoParseJSON(content){
+  try{ return JSON.parse(content); }
+  catch(e){ const m=String(content).match(/[\[{][\s\S]*[\]}]/); try{ return m?JSON.parse(m[0]):{}; }catch(_){ return {}; } }
+}
+function aiTasksArray(parsed){ return Array.isArray(parsed) ? parsed : (parsed.tasks || parsed.result || parsed.items || []); }
+function normPriority(p){ p=String(p||"").toLowerCase().trim(); if(p==="medium") p="med"; return (p==="high"||p==="med"||p==="low")?p:""; }
+function normTags(t){ return Array.isArray(t) ? t.map(x=>String(x||"").trim().toLowerCase().replace(/^#/,"")).filter(Boolean).slice(0,3) : []; }
+
+const TODO_DUMP_SYS = "You turn a messy brain-dump into a clean to-do list. Split the text into individual, "
+  + "actionable tasks. Rewrite each as a short, specific, verb-first task (max 12 words). Assign a priority of "
+  + '"high", "med", or "low" by urgency/importance, and 0-2 short lowercase tags (e.g. work, home, errand, call, '
+  + 'email, finance, health). Merge obvious duplicates and drop anything that is not a task. Respond ONLY with '
+  + 'JSON shaped exactly as {"tasks":[{"text":"...","priority":"high|med|low","tags":["..."]}]}.';
+async function aiBrainDump(ai, text){
+  const content = await aiComplete(ai, TODO_DUMP_SYS, JSON.stringify({braindump:text}), 1400);
+  return aiTasksArray(todoParseJSON(content))
+    .map(t=>({ text:String((t&&t.text)||"").trim(), priority:normPriority(t&&t.priority), tags:normTags(t&&t.tags) }))
+    .filter(t=>t.text);
+}
+
+const TODO_ORG_SYS = "You triage a to-do list. For each task in the input JSON array (each has an id and text), "
+  + 'assign a priority of "high", "med", or "low" by urgency/importance, and 0-2 short lowercase tags (e.g. work, '
+  + "home, errand, call, email, finance, health). Keep each task's id exactly. Respond ONLY with JSON shaped "
+  + 'exactly as {"tasks":[{"id":"...","priority":"high|med|low","tags":["..."]}]}.';
+async function aiOrganize(ai, tasks){
+  const payload = tasks.map(t=>({id:t.id, text:t.text}));
+  const content = await aiComplete(ai, TODO_ORG_SYS, JSON.stringify(payload), Math.min(2000, 40*tasks.length+150));
+  const byId = {};
+  aiTasksArray(todoParseJSON(content)).forEach(t=>{ if(t && t.id!=null) byId[t.id] = {priority:normPriority(t.priority), tags:normTags(t.tags)}; });
+  return byId;
+}
+
+// In-card AI popover, opened by the ✨ in the header.
+function toggleTodoAI(w, el, body){
+  const existing = el.querySelector(".todo-ai");
+  if(existing){ closePopover(el, existing); return; }
+  el.classList.add("cfg-open");
+  const cfg = todoCfg(w);
+  cfg.ai = cfg.ai || newFeedAI();
+  const pop = document.createElement("div");
+  pop.className = "todo-ai";
+  const keyed = AI_PROVIDERS.filter(p=>p.id!=="off" && ((state.ai.keys||{})[p.id]));
+  if(!keyed.length){
+    pop.innerHTML = `<div class="ta-need">✨ AI tasks need a provider key.<br>
+      <span>Add a DeepSeek, OpenAI, or Anthropic key under <b>⚙ Settings → AI</b>, then come back.</span></div>`;
+  } else {
+    if(!keyed.some(p=>p.id===cfg.ai.provider)){ cfg.ai.provider = keyed[0].id; cfg.ai.model = DEFAULT_MODELS[cfg.ai.provider]; }
+    const provOpts = keyed.map(p=>`<option value="${p.id}"${cfg.ai.provider===p.id?" selected":""}>${esc(p.label)}</option>`).join("");
+    pop.innerHTML = `
+      <div class="ta-row"><span class="ta-lab">AI</span><select class="ta-prov" title="Provider">${provOpts}</select></div>
+      <div class="ta-sec">
+        <div class="ta-cap">Brain dump</div>
+        <textarea class="ta-dump" rows="3" placeholder="Dump everything on your mind — a paragraph is fine. AI splits it into tasks."></textarea>
+        <button class="ta-extract" type="button">✨ Extract tasks</button>
+        <div class="ta-results"></div>
+      </div>
+      <div class="ta-sec">
+        <button class="ta-organize" type="button">✨ Auto-prioritize &amp; tag</button>
+        <div class="ta-status"></div>
+      </div>`;
+  }
+  el.appendChild(pop);
+  const prov = pop.querySelector(".ta-prov");
+  if(prov) prov.addEventListener("change",()=>{ cfg.ai.provider = prov.value; cfg.ai.model = DEFAULT_MODELS[prov.value]; save(); });
+  const ext = pop.querySelector(".ta-extract");
+  if(ext) ext.addEventListener("click",()=> runBrainDump(w, body, pop));
+  const org = pop.querySelector(".ta-organize");
+  if(org) org.addEventListener("click",()=> runOrganize(w, body, pop));
+  const onDoc = ev=>{ if(pop.contains(ev.target) || ev.target.closest('[data-act="ai"]')) return; closePopover(el, pop); };
+  pop.__onDoc = onDoc;
+  setTimeout(()=>document.addEventListener("pointerdown", onDoc), 0);
+}
+
+async function runBrainDump(w, body, pop){
+  const ta = pop.querySelector(".ta-dump"), btn = pop.querySelector(".ta-extract"), out = pop.querySelector(".ta-results");
+  const text = ta.value.trim();
+  if(!text){ ta.focus(); return; }
+  const ai = todoAIConfig(w);
+  if(!ai){ out.innerHTML = `<div class="ta-err">No AI key — add one under ⚙ Settings → AI.</div>`; return; }
+  const old = btn.textContent; btn.disabled = true; btn.textContent = "Thinking…";
+  out.innerHTML = `<div class="ta-busy"><span class="spinner"></span> Reading your dump…</div>`;
+  try{
+    const tasks = await aiBrainDump(ai, text);
+    if(!tasks.length){ out.innerHTML = `<div class="ta-err">Couldn't pull any tasks out of that.</div>`; return; }
+    renderDumpResults(w, body, pop, tasks);
+  }catch(e){
+    out.innerHTML = `<div class="ta-err">${esc("AI failed — "+(e.message||e))}</div>`;
+  }finally{ btn.disabled = false; btn.textContent = old; }
+}
+
+function renderDumpResults(w, body, pop, tasks){
+  const out = pop.querySelector(".ta-results");
+  out.innerHTML = `
+    <div class="ta-rhead">${tasks.length} task${tasks.length>1?"s":""} found — uncheck any to skip</div>
+    <ul class="ta-list">${tasks.map((t,i)=>`
+      <li><label><input type="checkbox" data-i="${i}" checked>
+        ${t.priority?`<span class="td-prio-dot prio-${esc(t.priority)}"></span>`:""}
+        <span class="ta-pt">${esc(t.text)}</span>
+        ${(t.tags||[]).map(tg=>`<span class="td-tag">${esc(tg)}</span>`).join("")}
+      </label></li>`).join("")}</ul>
+    <button class="ta-add" type="button">＋ Add selected</button>`;
+  out.querySelector(".ta-add").addEventListener("click",()=>{
+    const chosen = [...out.querySelectorAll("input[data-i]")].filter(c=>c.checked).map(c=>tasks[+c.dataset.i]);
+    const cfg = todoCfg(w);
+    chosen.forEach(t=> cfg.items.push({id:newTaskId(), text:t.text, done:false, priority:t.priority||"", tags:t.tags||[]}));
+    save(); renderTodoList(w, body);
+    const el = body.closest(".w"), p = el && el.querySelector(".todo-ai"); if(p) closePopover(el, p);
+  });
+}
+
+async function runOrganize(w, body, pop){
+  const btn = pop.querySelector(".ta-organize"), status = pop.querySelector(".ta-status");
+  const cfg = todoCfg(w);
+  const active = cfg.items.filter(it=>!it.done);
+  if(!active.length){ status.textContent = "No active tasks to organize."; return; }
+  const ai = todoAIConfig(w);
+  if(!ai){ status.innerHTML = `<span class="ta-err">No AI key — add one under ⚙ Settings → AI.</span>`; return; }
+  const old = btn.textContent; btn.disabled = true; btn.textContent = "Thinking…";
+  status.innerHTML = `<span class="ta-busy"><span class="spinner"></span> Prioritizing ${active.length} task${active.length===1?"":"s"}…</span>`;
+  try{
+    const map = await aiOrganize(ai, active);
+    let n = 0;
+    cfg.items.forEach(it=>{ const u = map[it.id]; if(u){ if(u.priority) it.priority = u.priority; if(u.tags && u.tags.length) it.tags = u.tags; n++; } });
+    cfg.sortByPriority = true;   // surface the triage immediately
+    save(); renderTodoList(w, body);
+    status.textContent = n ? `Prioritized ${n} task${n===1?"":"s"}.` : "No changes suggested.";
+  }catch(e){
+    status.innerHTML = `<span class="ta-err">${esc("AI failed — "+(e.message||e))}</span>`;
+  }finally{ btn.disabled = false; btn.textContent = old; }
+}
+
 /* ============================================================
    Adding widgets
    ============================================================ */
@@ -1854,8 +2244,13 @@ function addWeather(){
   state.widgets.push({id, type:"weather", title:"Weather", pos:firstFreeSpot(4,3), weather:{mode:"city", city:""}});
   save(); render();
 }
+function addTodo(){
+  const id = "todo_"+(idSeq++)+"_"+Date.now().toString(36);
+  state.widgets.push({id, type:"todo", title:"Tasks", pos:firstFreeSpot(4,4), todo:{items:[], doneBottom:true, hideDone:false}});
+  save(); render();
+}
 // Widget types that are multi-instance and toggled collectively by one checkbox.
-const COLLECTIVE = {news:"feed", clock:"clock", weather:"weather"};
+const COLLECTIVE = {news:"feed", clock:"clock", weather:"weather", todo:"todo"};
 function showUtil(type){
   const existing = state.widgets.find(x=>x.type===type);
   if(existing){ existing.hidden=false; }
@@ -2039,6 +2434,7 @@ $("#addFeedBtn2").addEventListener("click",()=>{
 });
 $("#addWeatherBtn").addEventListener("click",()=>{ addWeather(); syncSettingsForm(); });
 $("#addClockBtn").addEventListener("click",()=>{ addClock(); syncSettingsForm(); });
+$("#addTodoBtn").addEventListener("click",()=>{ addTodo(); syncSettingsForm(); });
 $("#resetLayout").addEventListener("click",()=>{
   const d = defaultState();
   // keep user's feeds/settings, reset only positions to a tidy default where ids match
@@ -2086,6 +2482,7 @@ $("#saveSettings").addEventListener("click",()=>{
       if(cb.checked && !state.widgets.some(w=>w.type===ct)){   // turning a collective on with none present → seed a default card
         if(ct==="clock")   state.widgets.push({id:"clock", type:"clock", title:"Clock", pos:firstFreeSpot(4,2), clock:{tz:"local",seconds:false,hour24:false,analog:false,showTz:false}});
         if(ct==="weather") state.widgets.push({id:"weather", type:"weather", title:"Weather", pos:firstFreeSpot(4,3), weather:{mode:"ip", city:""}});
+        if(ct==="todo")    state.widgets.push({id:"todo", type:"todo", title:"Tasks", pos:firstFreeSpot(4,4), todo:{items:[], doneBottom:true, hideDone:false}});
         // news: intentionally not auto-created (a feed needs a URL)
       }
       state.widgets.forEach(w=>{ if(w.type===ct) w.hidden = !cb.checked; });
