@@ -745,6 +745,15 @@
             <div class="row"><label>API key</label><input class="field" id="rss2jsonKey" type="password" placeholder="rss2json API key" autocomplete="off"><button class="btn danger" id="clearRss2json" type="button" style="flex:0 0 auto">Clear</button></div>
             <div class="smallnote">Topic searches load via the free <code>rss2json</code> tier (~10 items per request). Add a paid key (<code>rss2json.com</code>) to raise that cap; leave blank to stay on the free tier.</div>
           </div>
+          <div class="sec">
+            <h3>Reset</h3>
+            <div class="row" style="gap:6px">
+              <button class="btn" id="newsResetFeed" type="button">Reset feed</button>
+              <button class="btn" id="newsClearVotes" type="button">Clear votes</button>
+              <button class="btn danger" id="newsClearSaved" type="button">Clear Reading List</button>
+            </div>
+            <div class="smallnote"><b>Reset feed</b> re-pulls fresh stories (clears the accumulated feed and 2-day history). <b>Clear votes</b> forgets your 👍/👎 so ranking starts over. <b>Clear Reading List</b> removes every saved article.</div>
+          </div>
         </div>
 
         <!-- Photo of the Day -->
@@ -1364,6 +1373,40 @@ function pruneSeen(seen){
 function stampSeen(items){ const seen=readSeen(), now=Date.now(); items.forEach(it=>{ if(it.key) seen[it.key]=it.foundAt||now; }); writeSeen(seen); }
 const NEWS_MAX_ITEMS = 60;   // cap the accumulated feed so it can't grow without bound
 
+/* ---- Vote-based personalization ---- */
+const RANK_SYS = "You are a personalization engine. Given a user's liked and disliked article "
+  + "signals and a numbered list of candidate articles, return ONLY JSON shaped exactly as "
+  + '{"order":[<indices best-first>]} reordering ALL candidates so ones resembling the likes '
+  + "come first and ones resembling the dislikes come last. Include every index exactly once. No prose.";
+// Compact taste profile from stored votes (most-recent first, capped to keep the prompt small).
+function tasteProfile(){
+  const votes=readVotes(), liked=[], disliked=[];
+  Object.values(votes).forEach(v=>{
+    const tag=[v.title, v.topic&&("("+v.topic+")"), v.source].filter(Boolean).join(" ");
+    if(tag) (v.vote===1?liked:disliked).push({tag, ts:v.ts||0});
+  });
+  const recent=a=>a.sort((x,y)=>y.ts-x.ts).slice(0,20).map(o=>o.tag);
+  return { liked:recent(liked), disliked:recent(disliked) };
+}
+// Reorder items best-first using the taste profile. Reorders ALL items (never drops one) and
+// fails safe to the original order on any error — ranking must never break the feed.
+async function rankByTaste(ai, items){
+  const prof=tasteProfile();
+  if((!prof.liked.length && !prof.disliked.length) || items.length<2) return items;
+  const payload=JSON.stringify({ liked:prof.liked, disliked:prof.disliked,
+    candidates: items.map((it,i)=>({i, title:it.title, topic:it.topic, source:it.source, summary:it.summary||""})) });
+  try{
+    const content=await aiComplete(ai, RANK_SYS, payload, Math.min(700, 60+items.length*6));
+    let parsed; try{ parsed=JSON.parse(content); }catch(e){ const m=String(content).match(/\{[\s\S]*\}/); parsed=m?JSON.parse(m[0]):null; }
+    const order = parsed && Array.isArray(parsed.order) ? parsed.order : null;
+    if(!order) return items;
+    const seen=new Set(), ranked=[];
+    order.forEach(i=>{ if(Number.isInteger(i) && items[i] && !seen.has(i)){ seen.add(i); ranked.push(items[i]); } });
+    items.forEach((it,i)=>{ if(!seen.has(i)) ranked.push(it); });   // append anything the model omitted
+    return ranked;
+  }catch(e){ return items; }
+}
+
 // Accumulating feed: start from the existing feed (dropping stale/disliked/saved), then add
 // newly-found Google News stories that aren't already present or seen in the last 2 days.
 // Returns the rendered shape: [{key,title,summary,image,link,source,topic,when,foundAt}].
@@ -1428,14 +1471,17 @@ async function buildNewsFeed(w, existing){
     fresh.forEach(it=> it.summary = "");   // no key: the headline carries the card
   }
 
-  const freshNorm = fresh.map(it=>({
+  // 4. Vote-based re-rank of the fresh batch so stories matching the user's 👍/👎 lead it
+  //    (existing items keep their order — no jarring reshuffle of what's already on screen).
+  let ranked = fresh;
+  if(ai && fresh.length>=2) ranked = await rankByTaste(ai, fresh);
+
+  const freshNorm = ranked.map(it=>({
     key:it.key, title:it.title, summary:it.summary||"", image:it.image||"",
     link:it.link, source:it.source||"", topic:it.topic, when:it.when||"", foundAt:now
   }));
 
-  // 4. (Task 6) vote-based AI re-ranking is applied here, before returning.
-
-  return freshNorm.concat(feed);   // newest on top
+  return freshNorm.concat(feed);   // newest batch on top, ranked within
 }
 
 async function loadNewsFeed(w, body){
@@ -3299,6 +3345,12 @@ function updateRss2jsonLink(){ const a=$("#rss2jsonLink"); if(a) a.style.display
 $("#rss2jsonKey").addEventListener("input", updateRss2jsonLink);
 $("#clearRss2json").addEventListener("click",()=>{ $("#rss2jsonKey").value=""; updateRss2jsonLink(); });   // applied on Save
 
+// News reset controls — act immediately (these manage separate stores, not the settings form).
+function reloadNewsWidget(){ const nf=state.widgets.find(w=>w.type==="newsfeed"); const el=nf&&document.querySelector(`.w[data-id="${nf.id}"] .w-body`); if(el) loadWidget(nf, el); }
+$("#newsResetFeed")?.addEventListener("click",()=>{ clearNewsCache(); writeSeen({}); reloadNewsWidget(); });
+$("#newsClearVotes")?.addEventListener("click",()=>{ if(confirm("Forget all 👍/👎 votes? Ranking will start over.")){ writeVotes({}); reloadNewsWidget(); } });
+$("#newsClearSaved")?.addEventListener("click",()=>{ if(confirm("Remove all saved articles from the Reading List?")){ writeSaved([]); refreshReadingList(); } });
+
 // NASA key row: shown only for the APOD source; "get a key" link hides once a key is entered.
 function updateApodKeyUI(){
   const wrap=$("#apodKeyWrap"); if(wrap) wrap.style.display = ($("#artSrc").value==="apod") ? "" : "none";
@@ -3324,8 +3376,10 @@ $("#resetLayout").addEventListener("click",()=>{
   save(); render();
 });
 $("#resetAll").addEventListener("click",()=>{
-  if(confirm("Reset everything to defaults? Your feeds and layout will be lost.")){
-    localStorage.removeItem(LS_KEY); state = defaultState(); save(); render(); syncSettingsForm();
+  if(confirm("Reset everything to defaults? Your topics, votes, Reading List, and layout will be lost.")){
+    [LS_KEY, NEWS_CACHE_KEY, NEWS_VOTES_KEY, NEWS_SAVED_KEY, NEWS_SEEN_KEY, FEED_KEY, "myhome.wx", "myhome.potd"]
+      .forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
+    state = defaultState(); save(); render(); syncSettingsForm();
   }
 });
 $("#saveSettings").addEventListener("click",()=>{

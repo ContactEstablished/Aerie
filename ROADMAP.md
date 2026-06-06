@@ -3,12 +3,13 @@
 Working list of what's done, what's next, and ideas on deck. Not a contract — priorities can move.
 
 **Legend:** ✅ done · 🛠️ in progress · ⏭️ planned (next up) · 💡 idea / backlog
-_Last updated: 2026-06-02_
+_Last updated: 2026-06-05_
 
 ---
 
 ## ✅ Shipped
 
+- [x] **News Feed overhaul** — replaced per-source RSS feed cards with a **topic-driven feed + Reading List**. Add **topics** (pills); each is searched on **Google News** and merged into one **accumulating** feed (newest on top, drops after 2 days, **48h dedupe** so stories don't repeat). **👍/👎/💾** per story (like / not-interested-and-suppress / save to Reading List); the Reading List opens stories in a new tab or **✓ marks them read**. With an AI key: one-line summaries + **vote-based re-ranking**; without one it degrades to headlines + working buttons. Per-feed **refresh interval** (Off/15/30/60) and **provider/model**; reset feed / clear votes / clear Reading List. Settings schema `__v: 16`
 - [x] Single-file dashboard (`home.html`, inline CSS/JS, zero dependencies)
 - [x] Drag-to-move / resize-to-snap grid with auto-saved layout
 - [x] Local weather (Open-Meteo) — IP / city / GPS, units toggle, last-good cache
@@ -41,8 +42,9 @@ _Last updated: 2026-06-02_
 
 ## ⏭️ Planned (next up)
 
-### Feeds
-- [ ] Thumbnails in the classic (no-key) feed list (the image is already fetched per item — just surface it)
+### News
+- [ ] Better per-article images — Google News links are redirect stubs, so cards are mostly text-first today; explore resolving the real article URL (or a source-level image) for thumbnails
+- [ ] Optional full-feed (not just fresh-batch) re-ranking toggle
 
 ### Repo housekeeping
 - [ ] Add hero screenshot to the README (`img/aerie-screenshot.png`)

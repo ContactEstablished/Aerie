@@ -34,7 +34,7 @@
 - [Quick Start](#quick-start)
 - [Make It Your Chrome Home Page](#make-it-your-chrome-home-page)
 - [The Settings Panel](#the-settings-panel)
-- [Enabling AI Summaries](#enabling-ai-summaries)
+- [Enabling AI Summaries & Ranking](#enabling-ai-summaries--ranking)
 - [Arranging the Grid](#arranging-the-grid)
 - [Theming](#theming)
 - [How It Works](#how-it-works)
@@ -67,12 +67,12 @@ Everything is **configurable from a Settings panel** and **persists in your brow
 
 - 🦅 **One‑glance dashboard** — weather, news, and a daily photo in a single view.
 - 🧩 **Drag‑and‑drop grid** — move widgets by their header, resize from the corner; everything **snaps to an invisible grid**.
-- 🤖 **AI‑summarized news (optional)** — bring your own **DeepSeek, OpenAI, or Anthropic** key and feeds turn into rich "For You" cards: headline, one‑sentence summary, and a representative image pulled from the article. Pick the **provider and model per feed**.
-- 📰 **Any RSS/Atom feed** — CNN, BBC, and The Verge ship as defaults; add, edit, or remove any feed you like.
+- 📰 **Topic‑based news feed** — tell Aerie the **topics** you care about (pills you add/remove); it searches **Google News** for each and builds one merged feed. **👍/👎/💾** on every story: like it, dismiss it, or save it to your **Reading List**.
+- 🤖 **AI‑summarized & personalized (optional)** — bring your own **DeepSeek, OpenAI, or Anthropic** key for a one‑sentence summary per story, and **vote‑based re‑ranking** that surfaces what you've liked. Pick the **provider and model**. Without a key, the feed still shows headlines + working votes/save.
 - 🌤️ **Local weather, no API key** — auto‑locates you by IP (or set a city / use GPS), powered by Open‑Meteo. Add **multiple cards for multiple cities**.
 - 🖼️ **Photo of the Day** — Fstoppers' editor‑picked photo by default, plus **NASA's Astronomy Picture of the Day** or a random masterpiece from the Art Institute of Chicago or The Met. **Shuffle** through recent days, or reset to today.
 - 🎨 **Fully themeable** — independent **accent** and **background** color pickers, themed scrollbars, and a subtle layered gradient + watermark for depth.
-- ⏱️ **Smart caching** — feeds cache for 30 minutes, the photo caches for the day, weather shows the last‑known reading instantly while it refreshes.
+- ⏱️ **Smart caching** — the news feed refreshes on your chosen interval (and accumulates), the photo caches for the day, weather shows the last‑known reading instantly while it refreshes.
 - 🔒 **Local‑only & private** — your settings and API key never leave your browser except to call the services you've configured directly.
 - 🪶 **Zero dependencies** — pure HTML/CSS/JS, ~1 file.
 
@@ -91,25 +91,33 @@ Everything is **configurable from a Settings panel** and **persists in your brow
 - **Units** (Fahrenheit · mph, or Celsius · km/h) are a single global setting applied to every card.
 - The **last successful reading is cached per card** and shown instantly on load (marked *offline* if a refresh fails), so you're never staring at a spinner.
 
-### News Feeds
-- Reads **any RSS or Atom feed**. Defaults: **CNN Top Stories**, **BBC World**, **The Verge**.
-- Two display modes:
-  - **Classic** (no AI key) — a clean numbered headline list with relative timestamps.
-  - **AI "For You" cards** (with an AI provider key) — see below.
-- Feeds are fetched primarily through **[rss2json](https://rss2json.com/)** (reliable, CORS‑friendly, no key), with a **CORS‑proxy fallback** (`allorigins` → `codetabs`) for anything rss2json can't read. The free rss2json tier returns ~10 items per feed; add an optional **rss2json API key** in the News Feeds tab to raise that cap.
-- **Freshness at a glance** — the classic list footers an **"updated [time]"**, and AI cards show **"updated … · next refresh in Nm"** against the cache window.
-- Add / edit / remove feeds in Settings. A blank or invalid feed URL is safely ignored (it won't fire network requests).
+### News Feed (topic search) & Reading List
+Instead of managing individual RSS feeds, you tell Aerie the **topics** you want to follow and it builds a single, personalized feed. Two side‑by‑side widgets:
 
-### AI Summaries (optional — DeepSeek, OpenAI, or Anthropic)
-Add an API key for one or more of **[DeepSeek](https://platform.deepseek.com/)**, **[OpenAI](https://platform.openai.com/)**, or **[Anthropic](https://console.anthropic.com/)**, and feeds can become a magazine‑style card stack:
-1. Grabs the top **X** items (configurable, default 5).
-2. **Visits each article page** (through the CORS proxy) to extract its representative image (`og:image`) and real body text.
-3. Sends all items for a feed in **one batched call** to the feed's chosen provider, which returns a **single factual sentence** per article.
-4. Renders **headline + one‑line summary + thumbnail**, with a "More from …" link.
+- **News Feed** (left) — add **topics** as pills in **Settings → News** (type a word/phrase, press Enter; ✕ to remove). For each topic Aerie searches **Google News** (its per‑query RSS endpoint) and takes the top **N** stories (default 5), merging them into one feed.
+- **Reading List** (right) — articles you **💾 save** from the feed, to read later.
 
-**Per‑card control:** each feed independently chooses its **provider and model** — e.g. CNN via Anthropic Haiku, The Verge via OpenAI `gpt-4o-mini`, BBC left as plain headlines. The model picker offers a curated list per provider plus a **✎ Custom…** option to type *any* model name (a new release or a fine‑tune). All three providers are called **directly from your browser** (no backend); Anthropic uses its direct‑browser‑access header.
+Each story card has three actions:
+- **👍 like** — records that you like it (the story stays; feeds future ranking).
+- **👎 not interested** — hides it immediately and stops it being recommended again.
+- **💾 save** — copies it to the **Reading List** (the card stays, marked *Saved ✓*).
 
-Results are **cached per feed for 30 minutes** (configurable), and the cache keys on provider + model, so switching either rebuilds just that card.
+In the Reading List, click a story to **open it in a new tab**, or hit **✓ Read** to remove it.
+
+**How it stays fresh:**
+- The feed **accumulates** — each refresh *adds* newly‑found stories on top and keeps the ones already there, dropping anything older than **2 days** (or that you disliked/saved).
+- A **48‑hour dedupe ledger** means the same article isn't grabbed twice within two days.
+- **Auto‑refresh** every **Off / 15 / 30 / 60 min** (your choice); **⟳** fetches new stories onto the feed on demand.
+- Fetched through **[rss2json](https://rss2json.com/)** (CORS‑friendly, no key) with a **CORS‑proxy fallback** (`allorigins` → `codetabs`). Add an optional **rss2json API key** to lift the ~10‑items‑per‑request free‑tier cap.
+
+> **On images:** Google News article links are redirect URLs that can't be resolved quickly from the browser, so cards are mostly **text‑first** (headline + summary + source); a thumbnail appears only when the RSS item carries one.
+
+### AI: summaries & vote‑based ranking (optional — DeepSeek, OpenAI, or Anthropic)
+Add an API key for one of **[DeepSeek](https://platform.deepseek.com/)**, **[OpenAI](https://platform.openai.com/)**, or **[Anthropic](https://console.anthropic.com/)** (Settings → **AI**), then pick the **provider + model** for the feed in Settings → **News** (curated models per provider plus a **✎ Custom…** free‑text option). With a key, on each refresh Aerie:
+1. Sends the newly‑found stories in **one batched call** for a **single factual sentence** each (built from the headline + Google News's related‑coverage blurb — articles aren't individually fetched).
+2. **Re‑ranks** that batch with a second call that weighs your **👍/👎 history**, so stories resembling what you've liked lead and ones resembling dislikes sink. Ranking never drops a story and fails safe to the original order.
+
+All providers are called **directly from your browser** (no backend); Anthropic uses its direct‑browser‑access header. **Without a key**, the feed degrades gracefully: headlines, sources, timestamps, and the 👍/👎/💾 buttons all still work — just no summaries or ranking. The feed caches by **topics + count + provider + model** and rebuilds when any of those change.
 
 ### Photo of the Day
 - **Fstoppers — Photo of the Day** (default): the editors' daily pick, via its RSS feed.
@@ -187,8 +195,8 @@ Click **⚙ Settings** (top‑right) to open the configuration modal. Changes pr
 | Section | What you can configure |
 | --- | --- |
 | **Weather** | Units (°F·mph or °C·km/h), show/hide, and **＋ Add weather** for more cities. Each card's location (Auto‑IP / City / GPS) is set from its **⚙**. |
-| **News Feeds** | Add, rename, re‑URL, or remove feeds (each becomes its own widget); set each feed's **provider + model** (with a **✎ Custom…** model option); optional **rss2json key**. |
-| **AI Summaries** | Enable AI cards; paste/clear a **DeepSeek / OpenAI / Anthropic** key; set **articles per feed** and **cache minutes**. (Provider & model are chosen per feed in **News Feeds**.) |
+| **News** | Manage **topics** (pills); set **articles per topic**, **refresh interval**, and the feed's **provider + model** (with a **✎ Custom…** model option); optional **rss2json key**; **reset feed / clear votes / clear Reading List**. |
+| **AI Settings** | Enable AI; paste/clear a **DeepSeek / OpenAI / Anthropic** key. (The news feed's provider & model live in the **News** tab.) |
 | **Photo of the Day** | Source: Fstoppers POTD, NASA APOD, Art Institute of Chicago, or The Met. |
 | **Accent Color** | 8 preset swatches + custom color picker. |
 | **Background Color** | 8 preset base tones + custom color picker (gradient + glow preserved). |
@@ -199,9 +207,9 @@ Per‑widget controls live in each widget's header: **⟳** refreshes (and busts
 
 ---
 
-## Enabling AI Summaries
+## Enabling AI Summaries & Ranking
 
-AI summaries are **optional** — without a key, feeds show the classic headline list. Aerie supports three providers, all called directly from the browser:
+AI is **optional** — without a key the news feed still shows headlines, sources, timestamps, and the 👍/👎/💾 buttons. Aerie supports three providers, all called directly from the browser:
 
 | Provider | Get a key | Default model offered |
 | --- | --- | --- |
@@ -209,14 +217,11 @@ AI summaries are **optional** — without a key, feeds show the classic headline
 | **OpenAI** | [platform.openai.com](https://platform.openai.com/) | `gpt-4o-mini` |
 | **Anthropic** | [console.anthropic.com](https://console.anthropic.com/) | `claude-haiku-4-5` |
 
-1. In Aerie: **⚙ Settings → AI Summaries** → check **"Enhance feeds with AI"** → paste a key into **one or more** of the DeepSeek / OpenAI / Anthropic fields.
-2. In **Settings → News Feeds**, set each feed's **Provider** and **Model** on its **AI** line. (Choose *Off* to keep a feed as plain headlines.)
-3. Optionally tune the globals:
-   - **Articles / feed** — how many items to summarize (default **5**).
-   - **Cache (min)** — how long a feed's AI results are reused (default **30**).
-4. **Save.** Feeds with a provider rebuild as "For You" cards.
+1. In Aerie: **⚙ Settings → AI Settings** → check **"Enhance the news feed with AI"** → paste a key into **one** of the DeepSeek / OpenAI / Anthropic fields.
+2. In **Settings → News**, set the feed's **Provider** and **Model** (choose *Off* to keep plain headlines), plus **articles per topic** and the **refresh interval**.
+3. **Save.** On the next refresh the feed gains one‑line summaries and vote‑based ranking.
 
-**Cost & rate:** Each feed makes **one** call to its provider per refresh, throttled by the cache window, so usage stays low. The default models (`gpt-4o-mini`, Claude Haiku, `deepseek-chat`) are the cheap/fast tier — ideal for one‑sentence summaries. Use a provider's **Clear** button anytime to drop affected feeds back to plain headlines.
+**Cost & rate:** each refresh makes at most **two** calls — one to summarize the newly‑found stories, one to re‑rank them by your votes — and only when there are new stories, throttled by the refresh interval. The default models (`gpt-4o-mini`, Claude Haiku, `deepseek-chat`) are the cheap/fast tier. Clearing the key drops the feed back to headlines.
 
 > **Note on OpenAI errors:** OpenAI doesn't attach CORS headers to its `401` responses, so an *invalid* OpenAI key shows up as a generic "failed to fetch" in that card rather than a clean error message. A valid key works normally. (DeepSeek and Anthropic return clean error messages.)
 
@@ -226,7 +231,7 @@ AI summaries are **optional** — without a key, feeds show the classic headline
 
 - **Move:** click and drag a widget's **title bar** to a new spot — it snaps to grid cells.
 - **Resize:** drag the **bottom‑right corner** of a widget in or out — it snaps to cells.
-- **Add a feed:** the **＋ Feed** button (top bar) or **Settings → News Feeds**.
+- **Add topics:** **Settings → News** — add the topics you want to follow as pills.
 - **Hide/remove:** use the **–/✕** button in a widget header, or the **Widgets** toggles in Settings.
 - **Start over:** **Settings → Advanced → Reset layout** restores the default arrangement (keeping your feeds and preferences).
 
@@ -255,7 +260,7 @@ Both offer eight curated presets plus a full custom color picker, and both previ
 - **Networking** is plain `fetch`:
   - Services that allow cross‑origin requests (Open‑Meteo, rss2json, the AI providers, the museums, IP‑geo services) are called **directly**.
   - Feeds/pages that don't are routed through a **public CORS proxy** (`allorigins`, with `codetabs` as fallback). A small global limiter caps simultaneous proxy requests, and a retry‑with‑backoff smooths transient rate limits.
-- **AI feeds** parse RSS → fetch each article (concurrency‑limited) for image + text → one batched call to the feed's chosen provider (DeepSeek/OpenAI via chat‑completions, Anthropic via the Messages API) → render → cache.
+- **News feed** searches Google News per topic (rss2json/proxy) → merges + dedupes against a 48h ledger → one batched call to the chosen provider for summaries (DeepSeek/OpenAI via chat‑completions, Anthropic via the Messages API) → a second call re‑ranks by your votes → accumulates into the cached feed.
 - **Resilience first:** every data path has a fallback and shows cached or partial data rather than failing hard.
 
 ---
@@ -269,6 +274,7 @@ All free and key‑less, **except the AI providers** (optional, your key):
 | Weather | [Open‑Meteo](https://open-meteo.com/) (forecast + geocoding) | No |
 | IP geolocation | `ipwho.is` → `geojs.io` → `ipapi.co` | No |
 | Reverse geocoding | [BigDataCloud](https://www.bigdatacloud.com/) | No |
+| News search | [Google News](https://news.google.com/) RSS search (per topic) | No |
 | RSS → JSON (primary) | [rss2json](https://rss2json.com/) | No |
 | CORS proxy (fallback) | `api.allorigins.win` → `api.codetabs.com` | No |
 | AI summaries | [DeepSeek](https://platform.deepseek.com/) · [OpenAI](https://platform.openai.com/) · [Anthropic](https://console.anthropic.com/) | **Yes (optional)** |
@@ -276,7 +282,7 @@ All free and key‑less, **except the AI providers** (optional, your key):
 | Artwork | [Art Institute of Chicago](https://api.artic.edu/docs/) · [The Met](https://metmuseum.github.io/) | No |
 | Search | Google · Bing · Yahoo · custom URL | No |
 
-> **rss2json note:** The free tier returns up to ~10 items per feed and does **not** support the `count` parameter (that needs a paid key). Aerie omits `count` unless you add an **rss2json API key** (News Feeds tab) — with a key it sends `count` to raise the cap; without one it stays on the safe free‑tier path. If a feed needs more items or rss2json can't read it, Aerie falls back to the CORS proxy.
+> **rss2json note:** The free tier returns up to ~10 items per request and does **not** support the `count` parameter (that needs a paid key). Aerie omits `count` unless you add an **rss2json API key** (News tab) — with a key it sends `count` to raise the cap; without one it stays on the safe free‑tier path. If a request needs more items or rss2json can't read it, Aerie falls back to the CORS proxy.
 
 ---
 
@@ -286,8 +292,12 @@ Aerie stores everything client‑side. Keys used in `localStorage`:
 
 | Key | Contents | Refresh policy |
 | --- | --- | --- |
-| `myhome.v1` | Main state: layout, widgets, feeds (incl. per‑feed AI provider/model), per‑weather‑card location, units, theme, AI settings (incl. provider API keys), proxy, optional rss2json key. Versioned via `__v` (currently **10**). | On every change |
-| `myhome.feeds` | Built AI "For You" results per feed. | Older than the AI **cache minutes** (default 30) |
+| `myhome.v1` | Main state: layout, widgets (incl. the News Feed's topics + provider/model + refresh), per‑weather‑card location, units, theme, AI settings (incl. provider API keys), proxy, optional rss2json key. Versioned via `__v` (currently **16**). | On every change |
+| `myhome.news.cache` | The built News Feed (accumulated stories), keyed by topics + count + provider + model. | Older than the feed's refresh interval; **⟳** fetches new |
+| `myhome.news.votes` | Your 👍/👎 per article (with title/source/topic) — drives re‑ranking. | On each vote |
+| `myhome.news.saved` | The Reading List (saved articles). | On save / mark‑read |
+| `myhome.news.seen` | 48‑hour dedupe ledger so a story isn't grabbed twice within 2 days. | Pruned at 48h each build |
+| `myhome.feeds` | Legacy per‑feed AI cache (unused by the topic feed; kept for migration). | Older than the AI **cache minutes** (default 30) |
 | `myhome.wx` | Last successful weather reading per card (keyed by widget id). | On each successful fetch |
 | `myhome.potd` | The day's photo (per source). | New local day, or manual ⟳ |
 
@@ -324,8 +334,8 @@ Some VPN exit nodes are blocked by the public proxy/RSS/IP services. Toggle the 
 **Weather is blank or wrong.**
 The IP‑based location can be imprecise. Set a **City** (or enable **Precise/GPS**) in **Settings → Weather & Location**. If all IP providers are momentarily down, Aerie shows the last cached reading.
 
-**AI cards aren't appearing.**
-Check that **"Enhance feeds with AI"** is on, the feed has a **Provider** selected (not *Off*), and that provider's **key** is filled in. A bad key surfaces an error in the affected card (for OpenAI specifically, an invalid key reads as a generic "failed to fetch" — see the note in *Enabling AI Summaries*). Results cache for the configured minutes — hit ⟳ to force a rebuild.
+**Summaries / ranking aren't appearing.**
+Check that **"Enhance the news feed with AI"** is on (AI Settings tab), the feed has a **Provider** selected (not *Off*) in the **News** tab, and that provider's **key** is filled in. A bad key surfaces an error (for OpenAI specifically, an invalid key reads as a generic "failed to fetch"). The feed caches for the refresh interval — hit **⟳** to fetch new stories and rebuild.
 
 **Console shows `429 / Too Many Requests` from a proxy.**
 That's a public proxy throttling under load (worse on a cold load with many feeds, or if a feed has a blank URL). It usually self‑resolves on the next refresh; the rss2json primary path avoids the proxy for most feeds.
@@ -358,12 +368,12 @@ aerie/
 
 Because it's one file, tweaking is direct — open `home.html` and search for these:
 
-- **Default layout & widgets:** `defaultState()` — grid size, default feeds, and starting positions.
+- **Default layout & widgets:** `defaultState()` — grid size, default widgets (incl. the News Feed's seed topics), and starting positions.
 - **Watermark strength:** the `.watermark img { opacity }` rule.
 - **Grid line subtlety:** the `--line` CSS variable.
 - **Color presets:** `PRESET_ACCENTS` and `PRESET_BGS` arrays.
 - **CORS proxies:** the `PROXIES` array.
-- **AI prompt & provider routing:** `aiSummarize()` and the `AI_PROVIDERS` / `MODEL_OPTIONS` / `DEFAULT_MODELS` constants (add models or providers here).
+- **News engine:** `buildNewsFeed()` (topic search + accumulate + dedupe), `googleNewsUrl()`, `aiSummarize()` / `rankByTaste()` / `RANK_SYS`, and the `AI_PROVIDERS` / `MODEL_OPTIONS` / `DEFAULT_MODELS` constants (add models or providers here).
 - **Branding:** swap the files in `img/` (keep the same names, or update the `<link>`/`<img>` references near the top of the file).
 
 ---
