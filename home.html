@@ -532,6 +532,8 @@
   .fy-text{flex:1 1 auto;min-width:0}
   .fy-h{font-size:15px;font-weight:650;line-height:1.28;letter-spacing:-.1px;overflow-wrap:anywhere}
   .fy-s{font-size:13px;font-weight:400;color:var(--muted);margin-top:5px;line-height:1.45;overflow-wrap:anywhere}
+  /* News card: source · topic · time meta line under the summary */
+  .na-meta{font-size:11px;color:var(--dim);margin-top:6px;display:flex;flex-wrap:wrap;gap:4px}
   /* standardized thumbnails: consistent ratio + border, dimmed until the row is hovered */
   .fy-thumb{flex:0 0 auto;width:108px;aspect-ratio:16/10;border-radius:10px;overflow:hidden;
     background:var(--bg-panel);border:1px solid var(--border);opacity:.9;transition:opacity .12s ease}
@@ -1157,7 +1159,7 @@ function render(){
     const rb = el.querySelector('[data-act="refresh"]');
     if(rb) rb.addEventListener("click",()=>{
       if(w.type==="feed") clearFeedCache(w.id);   // ⟳ forces a fresh fetch + re-summarize
-      if(w.type==="newsfeed") clearNewsCache();   // ⟳ rebuilds the topic feed from Google News
+      if(w.type==="newsfeed") staleNewsCache();   // ⟳ fetches new stories onto the existing feed
       if(w.type==="art")  clearArtCache();        // ⟳ gets a new photo even within the same day
       loadWidget(w, el.querySelector(".w-body"));
     });
@@ -1305,8 +1307,180 @@ function loadWidget(w, body){
   if(w.type==="readinglist") return loadReadingList(w, body);
 }
 
-/* Placeholder loaders — replaced by the real renderers in later News tasks. */
-function loadNewsFeed(w, body){ body.innerHTML = loadingHTML; }
+/* ============================================================
+   News Feed — topic search on Google News, aggregated + summarized
+   ============================================================ */
+// Google News exposes a per-query RSS search feed; we reuse the existing rss2json/proxy
+// pipeline rather than scraping the HTML results page (which CORS + anti-bot would block).
+function googleNewsUrl(topic){
+  return "https://news.google.com/rss/search?q=" + encodeURIComponent(topic) +
+         "&hl=en-US&gl=US&ceid=US:en";
+}
+// Resolve the News Feed's AI config, or null when AI is off / disabled / unkeyed (→ degrade).
+function newsAIConfig(w){
+  if(!(state.ai && state.ai.enabled)) return null;
+  const ai = (w.news && w.news.ai) || {};
+  const keys = state.ai.keys || {};
+  const p = ai.provider;
+  if(!p || p==="off" || !keys[p]) return null;
+  return {provider:p, model: ai.model || DEFAULT_MODELS[p], key:keys[p]};
+}
+// Drop dedupe-ledger entries older than the 48h window (and persist the trim).
+function pruneSeen(seen){
+  const cut = Date.now() - NEWS_SEEN_MS; let changed=false;
+  for(const k in seen){ if(seen[k] < cut){ delete seen[k]; changed=true; } }
+  if(changed) writeSeen(seen);
+  return seen;
+}
+// Stamp each item's first-found time into the dedupe ledger (idempotent for existing items,
+// so a story's 2-day suppression runs from when it was FIRST found, not each refresh).
+function stampSeen(items){ const seen=readSeen(), now=Date.now(); items.forEach(it=>{ if(it.key) seen[it.key]=it.foundAt||now; }); writeSeen(seen); }
+const NEWS_MAX_ITEMS = 60;   // cap the accumulated feed so it can't grow without bound
+
+// Accumulating feed: start from the existing feed (dropping stale/disliked/saved), then add
+// newly-found Google News stories that aren't already present or seen in the last 2 days.
+// Returns the rendered shape: [{key,title,summary,image,link,source,topic,when,foundAt}].
+async function buildNewsFeed(w, existing){
+  existing = Array.isArray(existing) ? existing : [];
+  const cfg = w.news || {};
+  const topics = (cfg.topics||[]).map(t=>String(t).trim()).filter(Boolean);
+  const perTopic = clamp(parseInt(cfg.itemsPerTopic,10)||5, 1, 10);
+  const now = Date.now();
+  const votes = readVotes();
+  const savedKeys = new Set(readSaved().map(s=>s.key));
+
+  // Carry forward the existing feed minus anything stale (>2 days), disliked, or saved.
+  let feed = existing.filter(it => it.key
+    && !(votes[it.key] && votes[it.key].vote===-1)
+    && !savedKeys.has(it.key)
+    && (now - (it.foundAt||now)) < NEWS_SEEN_MS);
+  const have = new Set(feed.map(it=>it.key));
+  if(!topics.length) return feed;
+
+  // 1. Fetch every topic concurrently; tag each item with its topic + a stable key.
+  const all = [];
+  await mapLimit(topics, 4, async topic=>{
+    let items = [];
+    try{ items = await parseFeedItems(googleNewsUrl(topic), perTopic); }catch(e){ items = []; }
+    items.slice(0, perTopic).forEach(it=>{
+      const raw = it.title || "";
+      it.source = (it.source || sourceFromTitle(raw) || "").trim();
+      it.title  = cleanNewsTitle(raw);
+      it.topic  = topic;
+      it.key    = newsKey(it);
+      all.push(it);
+    });
+  });
+
+  // 2. New = candidates not already in the feed, not disliked/saved, not seen in the last 2 days.
+  const seen = pruneSeen(readSeen());
+  const picked = new Set(); const fresh = [];
+  for(const it of all){
+    if(!it.title || picked.has(it.key) || have.has(it.key)) continue;
+    if(votes[it.key] && votes[it.key].vote===-1) continue;
+    if(savedKeys.has(it.key)) continue;
+    if(seen[it.key]) continue;                 // shown before within 2 days (since removed) → skip
+    picked.add(it.key); fresh.push(it);
+  }
+
+  // 3. Summarize ONLY the fresh items (existing keep their summaries → no repeat AI cost).
+  //    We don't fetch each article: Google News links are redirect stubs the CORS proxy can't
+  //    resolve quickly (often 20s+ then fails). Context = headline + Google's related-coverage
+  //    blurb. Images come only from the RSS thumbnail when present (usually absent here).
+  fresh.forEach(it=>{
+    const related = stripHtml(it.desc).replace(/\s+/g," ").trim();
+    it.context = (it.title + (related ? ". Related coverage: " + related : "")).slice(0,600);
+  });
+  const ai = newsAIConfig(w);
+  if(ai && fresh.length){
+    try{
+      const summaries = await aiSummarize(ai, fresh.map(it=>({title:it.title, content:it.context})));
+      fresh.forEach((it,i)=> it.summary = (summaries[i] || "").trim());
+    }catch(e){ fresh.forEach(it=> it.summary = ""); }
+  } else {
+    fresh.forEach(it=> it.summary = "");   // no key: the headline carries the card
+  }
+
+  const freshNorm = fresh.map(it=>({
+    key:it.key, title:it.title, summary:it.summary||"", image:it.image||"",
+    link:it.link, source:it.source||"", topic:it.topic, when:it.when||"", foundAt:now
+  }));
+
+  // 4. (Task 6) vote-based AI re-ranking is applied here, before returning.
+
+  return freshNorm.concat(feed);   // newest on top
+}
+
+async function loadNewsFeed(w, body){
+  w.news ??= {topics:[], itemsPerTopic:5, refreshMins:30, ai:{provider:"deepseek", model:DEFAULT_MODELS.deepseek}};
+  const cfg = w.news;
+  const topics = (cfg.topics||[]).map(t=>String(t).trim()).filter(Boolean);
+  feedLoadedAt[w.id] = Date.now();
+  startFeedTicker();
+  if(!topics.length){
+    body.innerHTML = `<div class="state"><div>No topics yet.</div><div class="keyhint" style="margin:0">Add topics in ⚙ Settings → News to build your feed.</div></div>`;
+    return;
+  }
+  const perTopic = clamp(parseInt(cfg.itemsPerTopic,10)||5, 1, 10);
+  const ai = newsAIConfig(w);
+  const sig = JSON.stringify({t:[...topics].sort(), perTopic, p: ai?ai.provider:"none", m: ai?ai.model:"none"});
+  const cache = readNewsCache();
+  const sameCfg = cache && cache.sig===sig;
+  if(sameCfg && cache.items && cache.items.length && (Date.now()-cache.ts) < feedRefreshMins(w)*60000){
+    return renderNewsFeed(w, body, cache.items, cache.ts);    // within the refresh window: no network
+  }
+  // Rebuild. Accumulate onto the existing feed unless the config changed (then start fresh).
+  const existing = sameCfg ? (cache.items||[]) : [];
+  if(existing.length) renderNewsFeed(w, body, existing, cache.ts);   // show what we have immediately
+  else body.innerHTML = `<div class="state"><div class="spinner"></div><div>Searching Google News for your topics…</div></div>`;
+  try{
+    let items = await buildNewsFeed(w, existing);
+    items = items.slice(0, NEWS_MAX_ITEMS);
+    writeNewsCache({ts:Date.now(), sig, items});
+    stampSeen(items);                                          // suppress re-grabbing for 2 days
+    renderNewsFeed(w, body, items, Date.now());
+  }catch(e){
+    if(existing.length) renderNewsFeed(w, body, existing, cache.ts);   // keep the feed we had
+    else body.innerHTML = errorHTML("News feed failed — "+(e.message||e));
+  }
+}
+
+// Read-only card list (vote/save buttons are added in Task 4).
+function renderNewsFeed(w, body, items, ts){
+  const ai = newsAIConfig(w);
+  const off = w.news && parseInt(w.news.refreshMins,10)===0;
+  const updated = ts ? "updated "+timeAgo(new Date(ts)) : "";
+  const nextRef = off ? "" : nextRefreshLabel(ts, w);
+  const meta = [updated, nextRef].filter(Boolean).join(" · ");
+  const head = `
+    <div class="fy-head">
+      <span class="fy-bar"></span>
+      <div class="fy-htext">
+        <div class="fy-title">${esc(w.title||"News Feed")}</div>
+        <div class="fy-sub">${ai?`<span class="fy-pill">AI-summarized</span>`:""}${meta?`<span>${esc(meta)}</span>`:""}</div>
+      </div>
+    </div>`;
+  if(!items || !items.length){
+    body.innerHTML = `<div class="foryou">${head}
+      <div class="state" style="margin-top:10px"><div>No fresh stories right now.</div>
+      <div class="keyhint" style="margin:0">Articles don't repeat for two days — new ones appear as your topics surface them. Add more topics in ⚙ Settings → News, or hit ⟳.</div></div></div>`;
+    return;
+  }
+  const rows = items.map(x=>`
+    <a class="fy-item" href="${esc(x.link)}" target="_blank" rel="noopener">
+      <div class="fy-text">
+        <div class="fy-h">${esc(x.title)}</div>
+        ${x.summary?`<div class="fy-s">${esc(x.summary)}</div>`:""}
+        <div class="na-meta">${[x.source, x.topic, x.when].filter(Boolean).map(esc).join(" · ")}</div>
+      </div>
+      ${x.image?`<div class="fy-thumb"><img src="${esc(x.image)}" alt="" referrerpolicy="no-referrer" loading="lazy" onerror="this.closest('.fy-thumb').remove()"></div>`:""}
+    </a>`).join("");
+  body.innerHTML = `<div class="foryou">${head}
+    ${ai?"":`<div class="keyhint">Add an AI key in ⚙ Settings → AI for one-line summaries and smarter ranking.</div>`}
+    <div class="fy-list">${rows}</div></div>`;
+}
+
+/* Placeholder loader — replaced by the real Reading List in Task 5. */
 function loadReadingList(w, body){ body.innerHTML = loadingHTML; }
 
 /* ---------- News feed ---------- */
@@ -1387,6 +1561,7 @@ async function parseFeedItems(url, limit){
           link:(it.link||it.guid||"#").trim(),
           when: d && !isNaN(d) ? timeAgo(d) : "",
           desc: it.description || it.content || "",
+          source: (it.author||"").trim(),   // Google News often carries the publisher here
           image: fixImgUrl(it.thumbnail || (it.enclosure && (it.enclosure.thumbnail||it.enclosure.link)) || pickImgFromHtml(it.content||it.description||""))
         };
       });
@@ -1406,7 +1581,8 @@ async function parseFeedItems(url, limit){
     let when=""; if(dRaw){ const d=new Date(dRaw); if(!isNaN(d)) when=timeAgo(d); }
     const desc = it.querySelector("description,summary")?.textContent
               || it.getElementsByTagName("content:encoded")[0]?.textContent || "";
-    return {title, link, when, desc, image:pickRSSImage(it)};
+    const source = (it.querySelector("source")?.textContent || "").trim();   // Google News <source>
+    return {title, link, when, desc, source, image:pickRSSImage(it)};
   });
 }
 // rss2json and escaped-HTML feed content hand back image URLs with HTML-encoded
@@ -1617,6 +1793,9 @@ function writeSeen(v){ writeJSON(NEWS_SEEN_KEY, v); }
 function readNewsCache(){ return readJSON(NEWS_CACHE_KEY, null); }
 function writeNewsCache(obj){ writeJSON(NEWS_CACHE_KEY, obj); }
 function clearNewsCache(){ try{ localStorage.removeItem(NEWS_CACHE_KEY); }catch(e){} }
+// ⟳ fetches new stories now but keeps the accumulated feed: mark the cache stale (not cleared)
+// so the next load rebuilds onto the existing items rather than wiping them.
+function staleNewsCache(){ const c=readNewsCache(); if(c){ c.ts=0; writeNewsCache(c); } }
 // Google News titles read "Headline - Source"; the RSS also carries a <source>. Strip the
 // trailing " - Source" for the displayed title and derive a fallback source from it.
 function sourceFromTitle(t){ const m=String(t||"").match(/\s+-\s+([^-]+)$/); return m?m[1].trim():""; }
