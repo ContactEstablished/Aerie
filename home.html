@@ -738,7 +738,14 @@
               <select class="field" id="newsModel"></select>
             </div>
             <input class="field" id="newsModelCustom" placeholder="Custom model name (e.g. gpt-4o-2024-11-20)" style="display:none;width:100%;margin-top:6px">
-            <div class="smallnote">AI writes a one-line summary per article and ranks the feed using your 👍/👎 votes. Add a key under the <b>AI Settings</b> tab. Without a key the feed still shows headlines, thumbnails, and the vote/save buttons — just no summaries or ranking.</div>
+            <div class="smallnote">AI writes a one-line summary per article and ranks the feed using your 👍/👎 votes. Add a key under the <b>AI Settings</b> tab. Without a key the feed still shows headlines and the vote/save buttons — just no summaries or ranking.</div>
+          </div>
+          <div class="sec">
+            <h3>Images<a class="seclink" id="pexelsLink" href="https://www.pexels.com/api/" target="_blank" rel="noopener">get a key ↗</a></h3>
+            <label class="chk"><input type="checkbox" id="newsShowImages"> Show a photo on each card</label>
+            <div class="row"><label>Pexels key</label><input class="field" id="pexelsKey" type="password" placeholder="Pexels API key" autocomplete="off"><button class="btn danger" id="clearPexels" type="button" style="flex:0 0 auto">Clear</button></div>
+            <div class="row"><label>Reuse a photo at most</label><input class="field" id="newsImageReuse" type="number" min="1" max="10" step="1" style="flex:0 0 auto;max-width:70px"><span class="ref-unit">times</span></div>
+            <div class="smallnote">AI turns each headline into an image search phrase and pulls a matching photo from <code>Pexels</code> (free key at <code>pexels.com/api</code>). Without an AI key it searches by topic. Each photo is reused at most this many times so the feed stays fresh; leave the key blank for text-only cards.</div>
           </div>
           <div class="sec">
             <h3>rss2json key (optional)<a class="seclink" id="rss2jsonLink" href="https://rss2json.com/plans" target="_blank" rel="noopener">get a key ↗</a></h3>
@@ -916,11 +923,12 @@ function defaultState(){
     theme:{accent:"#7c8cff", bg:"#071012"},
     proxy:PROXIES[0],
     rss2jsonKey:"",
+    pexelsKey:"",
     widgets:[
       {id:"newsfeed",    type:"newsfeed",    title:"News Feed",
         pos:{c:0,r:0,w:5,h:9}, z:1, collapsed:false,
         news:{ topics:["Technology","World news","Business"], itemsPerTopic:5, refreshMins:30,
-               ai:{provider:"deepseek", model:"deepseek-chat"} }},
+               showImages:true, imageReuse:2, ai:{provider:"deepseek", model:"deepseek-chat"} }},
       {id:"readinglist", type:"readinglist", title:"Reading List",
         pos:{c:5,r:0,w:3,h:9}, z:2, collapsed:false},
       {id:"weather",type:"weather", title:"Weather", pos:{c:8,r:0,w:4,h:3}, z:3, collapsed:false, weather:{mode:"ip", city:""}},
@@ -1052,6 +1060,12 @@ function migrate(s){
     }
     s.zCounter = Math.max(s.zCounter||10, z);
     s.__v = 16;
+  }
+  if(s.__v < 17){
+    // Pexels images: optional key + per-feed show/reuse settings.
+    s.pexelsKey ??= "";
+    (s.widgets||[]).forEach(w=>{ if(w.type==="newsfeed" && w.news){ w.news.showImages ??= true; w.news.imageReuse ??= 2; } });
+    s.__v = 17;
   }
 }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
@@ -1464,12 +1478,15 @@ async function buildNewsFeed(w, existing){
   const ai = newsAIConfig(w);
   if(ai && fresh.length){
     try{
-      const summaries = await aiSummarize(ai, fresh.map(it=>({title:it.title, content:it.context})));
-      fresh.forEach((it,i)=> it.summary = (summaries[i] || "").trim());
-    }catch(e){ fresh.forEach(it=> it.summary = ""); }
+      // One batched call returns BOTH a one-line summary and a Pexels image search phrase.
+      const enr = await aiNewsEnrich(ai, fresh.map(it=>({title:it.title, content:it.context})));
+      fresh.forEach((it,i)=>{ it.summary=((enr[i]&&enr[i].summary)||"").trim(); it.imageQuery=((enr[i]&&enr[i].query)||"").trim(); });
+    }catch(e){ fresh.forEach(it=>{ it.summary=""; it.imageQuery=""; }); }
   } else {
-    fresh.forEach(it=> it.summary = "");   // no key: the headline carries the card
+    fresh.forEach(it=>{ it.summary=""; it.imageQuery=""; });   // no key: the headline carries the card
   }
+  // Fallback image phrase when AI gave none: the topic the story came from (always on-subject).
+  fresh.forEach(it=>{ if(!it.imageQuery) it.imageQuery = it.topic || ""; });
 
   // 4. Vote-based re-rank of the fresh batch so stories matching the user's 👍/👎 lead it
   //    (existing items keep their order — no jarring reshuffle of what's already on screen).
@@ -1477,11 +1494,82 @@ async function buildNewsFeed(w, existing){
   if(ai && fresh.length>=2) ranked = await rankByTaste(ai, fresh);
 
   const freshNorm = ranked.map(it=>({
-    key:it.key, title:it.title, summary:it.summary||"", image:it.image||"",
+    key:it.key, title:it.title, summary:it.summary||"", image:it.image||"", imageQuery:it.imageQuery||it.topic||"",
     link:it.link, source:it.source||"", topic:it.topic, when:it.when||"", foundAt:now
   }));
 
   return freshNorm.concat(feed);   // newest batch on top, ranked within
+}
+
+/* ---- Images: AI picks a phrase → Pexels photo, with reuse-capped rotation for freshness ---- */
+const PEXELS_POOL = 30;   // candidate photos fetched per search phrase
+// Fetch a page of landscape photos for a phrase from Pexels (CORS-enabled; key in the header).
+async function pexelsSearch(query, page){
+  const key = (state.pexelsKey||"").trim(); if(!key || !query) return [];
+  const url = "https://api.pexels.com/v1/search?orientation=landscape&per_page="+PEXELS_POOL
+            + "&page="+(page||1)+"&query="+encodeURIComponent(query);
+  const r = await fetchWithTimeout(url, 9000, {headers:{Authorization:key}});
+  if(!r.ok) throw new Error("Pexels "+r.status);
+  const j = await r.json();
+  return (j.photos||[]).map(p=>({
+    url: (p.src && (p.src.landscape || p.src.large || p.src.medium)) || "",
+    alt: p.alt || "", by: p.photographer || ""
+  })).filter(p=>p.url);
+}
+// Choose a photo for `query`, preferring the least-used one under the reuse cap so the same image
+// isn't shown too often. Operates on in-memory pool/use maps (caller persists once) to avoid races.
+async function imageForQuery(query, cap, pools, use){
+  query = (query||"").trim().toLowerCase(); if(!query) return null;
+  let pool = pools[query];
+  if(!pool || (Date.now()-pool.ts) > IMGPOOL_TTL){
+    let photos=[]; try{ photos = await pexelsSearch(query, 1); }catch(e){ photos=[]; }
+    pool = {photos, ts:Date.now(), page:1}; pools[query]=pool;
+  }
+  let avail = pool.photos.filter(p=>(use[p.url]||0) < cap);
+  if(!avail.length && pool.photos.length){               // pool exhausted → page deeper for fresh ones
+    try{ const more = await pexelsSearch(query, (pool.page||1)+1);
+         if(more.length){ pool.page=(pool.page||1)+1; pool.photos = pool.photos.concat(more); } }catch(e){}
+    avail = pool.photos.filter(p=>(use[p.url]||0) < cap);
+  }
+  const arr = avail.length ? avail : pool.photos;          // if everything's capped, reuse least-used rather than blank
+  if(!arr.length) return null;
+  arr.sort((a,b)=>(use[a.url]||0)-(use[b.url]||0));
+  const min = use[arr[0].url]||0;
+  const tied = arr.filter(p=>(use[p.url]||0)===min);
+  const pick = tied[Math.floor(Math.random()*tied.length)];
+  use[pick.url] = (use[pick.url]||0) + 1;
+  return pick;
+}
+// Background pass: give every imageless card a Pexels photo, write it back to the cache, and
+// slot the thumbnail into the DOM as it arrives. Best-effort; skipped without a key / when off.
+async function enrichImages(w){
+  if(!w.news || w.news.showImages===false) return;
+  if(!(state.pexelsKey||"").trim()) return;
+  const cap = clamp(parseInt(w.news.imageReuse,10)||2, 1, 10);
+  const c = readNewsCache(); if(!c || !c.items) return;
+  const need = c.items.filter(it=>!it.image && (it.imageQuery||it.topic));
+  if(!need.length) return;
+  const pools = readImgPool(), use = readImgUse();
+  await mapLimit(need, 3, async it=>{
+    let pick=null; try{ pick = await imageForQuery(it.imageQuery||it.topic, cap, pools, use); }catch(e){}
+    if(pick && pick.url){
+      it.image = pick.url; it.imageAlt = pick.alt;
+      const cur = readNewsCache();                         // re-read so we don't clobber concurrent writes
+      if(cur && cur.items){ const t=cur.items.find(x=>x.key===it.key); if(t){ t.image=pick.url; t.imageAlt=pick.alt; } writeNewsCache(cur); }
+      insertCardThumb(w, it.key, pick.url);
+    }
+  });
+  writeImgPool(pools); writeImgUse(use);
+}
+function insertCardThumb(w, key, url){
+  try{
+    const main = document.querySelector(`.w[data-id="${w.id}"] .news-card[data-key="${(window.CSS&&CSS.escape)?CSS.escape(key):key}"] .nc-main`);
+    if(main && !main.querySelector(".fy-thumb")){
+      const d=document.createElement("div"); d.className="fy-thumb";
+      d.innerHTML=`<img src="${esc(url)}" alt="" referrerpolicy="no-referrer" loading="lazy" onerror="this.closest('.fy-thumb').remove()">`;
+      main.appendChild(d);
+    }
+  }catch(e){}
 }
 
 async function loadNewsFeed(w, body){
@@ -1500,7 +1588,9 @@ async function loadNewsFeed(w, body){
   const cache = readNewsCache();
   const sameCfg = cache && cache.sig===sig;
   if(sameCfg && cache.items && cache.items.length && (Date.now()-cache.ts) < feedRefreshMins(w)*60000){
-    return renderNewsFeed(w, body, cache.items, cache.ts);    // within the refresh window: no network
+    renderNewsFeed(w, body, cache.items, cache.ts);           // within the refresh window: no network
+    enrichImages(w);                                          // fill in any missing thumbnails (cached)
+    return;
   }
   // Rebuild. Accumulate onto the existing feed unless the config changed (then start fresh).
   const existing = sameCfg ? (cache.items||[]) : [];
@@ -1512,6 +1602,7 @@ async function loadNewsFeed(w, body){
     writeNewsCache({ts:Date.now(), sig, items});
     stampSeen(items);                                          // suppress re-grabbing for 2 days
     renderNewsFeed(w, body, items, Date.now());
+    enrichImages(w);                                           // fetch Pexels thumbnails in the background
   }catch(e){
     if(existing.length) renderNewsFeed(w, body, existing, cache.ts);   // keep the feed we had
     else body.innerHTML = errorHTML("News feed failed — "+(e.message||e));
@@ -1572,6 +1663,7 @@ function renderNewsFeed(w, body, items, ts){
   }
   const votes = readVotes();
   const savedKeys = new Set(readSaved().map(s=>s.key));
+  const showImg = !w.news || w.news.showImages !== false;
   const rows = items.map(x=>{
     const up = votes[x.key] && votes[x.key].vote===1;
     const saved = savedKeys.has(x.key);
@@ -1582,7 +1674,7 @@ function renderNewsFeed(w, body, items, ts){
           ${x.summary?`<div class="fy-s">${esc(x.summary)}</div>`:""}
           <div class="na-meta">${[x.source, x.topic, x.when].filter(Boolean).map(esc).join(" · ")}</div>
         </div>
-        ${x.image?`<div class="fy-thumb"><img src="${esc(x.image)}" alt="" referrerpolicy="no-referrer" loading="lazy" onerror="this.closest('.fy-thumb').remove()"></div>`:""}
+        ${showImg && x.image?`<div class="fy-thumb"><img src="${esc(x.image)}" alt="${esc(x.imageAlt||"")}" referrerpolicy="no-referrer" loading="lazy" onerror="this.closest('.fy-thumb').remove()"></div>`:""}
       </a>
       <div class="nc-actions">
         <button class="nc-btn${up?" on":""}" data-act="up"   data-key="${esc(x.key)}" title="I like this">👍</button>
@@ -1899,6 +1991,23 @@ async function aiSummarize(ai, articles){
   const content = await aiComplete(ai, SUMMARY_SYS, JSON.stringify(articles), maxTok);
   return parseSummaries(content);
 }
+
+// News enrichment: one batched call returns, per article, a one-line summary AND a short,
+// concrete image search phrase for Pexels. Returns [{summary, query}, ...] in input order.
+const NEWS_ENRICH_SYS = "You are a concise news editor. For each article (title + content) in the input "
+  + "JSON array return two fields: \"summary\" — ONE factual, non-clickbait sentence (max 22 words, no "
+  + "markdown) capturing the key point; and \"query\" — a 2-4 word image search phrase naming the most "
+  + "concrete, photographable visual subject of the story (e.g. \"triathlon swim\", \"wildfire forest\", "
+  + "\"stock trading floor\"). For the query prefer vivid generic scenes; avoid proper names, dates and "
+  + "abstractions. Respond ONLY with JSON shaped exactly as {\"items\":[{\"summary\":\"...\",\"query\":\"...\"}]} "
+  + "in the same order as the input.";
+async function aiNewsEnrich(ai, articles){
+  if(!articles.length) return [];
+  const maxTok = Math.min(3500, 95*articles.length + 150);
+  const content = await aiComplete(ai, NEWS_ENRICH_SYS, JSON.stringify(articles), maxTok);
+  let parsed; try{ parsed=JSON.parse(content); }catch(e){ const m=String(content).match(/\{[\s\S]*\}/); parsed = m?JSON.parse(m[0]):{}; }
+  return Array.isArray(parsed) ? parsed : (parsed.items || parsed.results || parsed.summaries || []);
+}
 function aiErr(t){ try{ const j=JSON.parse(t); return (j.error && (j.error.message||j.error.type)) || t.slice(0,160); }catch(e){ return t.slice(0,160); } }
 function parseSummaries(content){
   let parsed; try{ parsed=JSON.parse(content); }catch(e){ const m=String(content).match(/\[[\s\S]*\]/); parsed = m?{summaries:JSON.parse(m[0])}:{}; }
@@ -1959,6 +2068,16 @@ function clearNewsCache(){ try{ localStorage.removeItem(NEWS_CACHE_KEY); }catch(
 // ⟳ fetches new stories now but keeps the accumulated feed: mark the cache stale (not cleared)
 // so the next load rebuilds onto the existing items rather than wiping them.
 function staleNewsCache(){ const c=readNewsCache(); if(c){ c.ts=0; writeNewsCache(c); } }
+// Image stores: a per-search-phrase candidate pool (so we don't re-hit Pexels per article) and a
+// per-image use counter (so the same photo isn't reused too often → the feed stays fresh).
+const NEWS_IMGPOOL_KEY="myhome.news.imgpool",   // {query:{photos:[{url,alt,photographer}], ts, page}}
+      NEWS_IMGUSE_KEY ="myhome.news.imguse";    // {url:count}
+const IMGPOOL_TTL = 7*24*3600*1000;             // refresh a phrase's candidate pool weekly
+function readImgPool(){ return readJSON(NEWS_IMGPOOL_KEY, {}); }
+function writeImgPool(v){ writeJSON(NEWS_IMGPOOL_KEY, v); }
+function readImgUse(){ return readJSON(NEWS_IMGUSE_KEY, {}); }
+function writeImgUse(v){ writeJSON(NEWS_IMGUSE_KEY, v); }
+function clearImgStores(){ try{ localStorage.removeItem(NEWS_IMGPOOL_KEY); localStorage.removeItem(NEWS_IMGUSE_KEY); }catch(e){} }
 // Google News titles read "Headline - Source"; the RSS also carries a <source>. Strip the
 // trailing " - Source" for the displayed title and derive a fallback source from it.
 function sourceFromTitle(t){ const m=String(t||"").match(/\s+-\s+([^-]+)$/); return m?m[1].trim():""; }
@@ -3207,6 +3326,8 @@ function syncSettingsForm(){
   $("#proxy").value = state.proxy;
   $("#rss2jsonKey").value = state.rss2jsonKey || "";
   updateRss2jsonLink();
+  $("#pexelsKey").value = state.pexelsKey || "";
+  updatePexelsLink();
   $("#aiEnabled").checked = !!state.ai.enabled;
   const keys = state.ai.keys || {};
   $("#key_deepseek").value = keys.deepseek || "";
@@ -3313,8 +3434,12 @@ function mountNewsProvider(ai){
 function renderNewsSettings(){
   const w = state.widgets.find(x=>x.type==="newsfeed"); if(!w) return;
   w.news ??= {topics:[], itemsPerTopic:5, refreshMins:30, ai:{provider:"deepseek", model:DEFAULT_MODELS.deepseek}};
-  const n = w.news; n.topics ??= []; n.ai ??= {provider:"deepseek", model:DEFAULT_MODELS.deepseek};
+  const n = w.news; n.topics ??= []; n.ai ??= {provider:"deepseek", model:DEFAULT_MODELS.deepseek}; n.showImages ??= true; n.imageReuse ??= 2;
   const tbox = $("#newsTopics"); if(tbox) mountPillInput(tbox, n.topics, ()=>{});
+  const showImg = $("#newsShowImages");
+  if(showImg){ showImg.checked = n.showImages!==false; showImg.onchange=()=>{ n.showImages = showImg.checked; }; }
+  const reuse = $("#newsImageReuse");
+  if(reuse){ reuse.value = n.imageReuse||2; reuse.onchange=()=>{ n.imageReuse = clamp(parseInt(reuse.value,10)||2,1,10); reuse.value=n.imageReuse; }; }
   const items = $("#newsItems");
   if(items){ items.value = n.itemsPerTopic||5; items.onchange=()=>{ n.itemsPerTopic = clamp(parseInt(items.value,10)||5,1,10); items.value=n.itemsPerTopic; }; }
   const ref = $("#newsRefresh");
@@ -3344,6 +3469,10 @@ document.querySelectorAll("[data-clearkey]").forEach(btn=>{
 function updateRss2jsonLink(){ const a=$("#rss2jsonLink"); if(a) a.style.display = $("#rss2jsonKey").value.trim() ? "none" : ""; }
 $("#rss2jsonKey").addEventListener("input", updateRss2jsonLink);
 $("#clearRss2json").addEventListener("click",()=>{ $("#rss2jsonKey").value=""; updateRss2jsonLink(); });   // applied on Save
+// Pexels image key — show the "get a key" link only while the field is empty.
+function updatePexelsLink(){ const a=$("#pexelsLink"); if(a) a.style.display = $("#pexelsKey").value.trim() ? "none" : ""; }
+$("#pexelsKey").addEventListener("input", updatePexelsLink);
+$("#clearPexels").addEventListener("click",()=>{ $("#pexelsKey").value=""; updatePexelsLink(); });   // applied on Save
 
 // News reset controls — act immediately (these manage separate stores, not the settings form).
 function reloadNewsWidget(){ const nf=state.widgets.find(w=>w.type==="newsfeed"); const el=nf&&document.querySelector(`.w[data-id="${nf.id}"] .w-body`); if(el) loadWidget(nf, el); }
@@ -3377,7 +3506,7 @@ $("#resetLayout").addEventListener("click",()=>{
 });
 $("#resetAll").addEventListener("click",()=>{
   if(confirm("Reset everything to defaults? Your topics, votes, Reading List, and layout will be lost.")){
-    [LS_KEY, NEWS_CACHE_KEY, NEWS_VOTES_KEY, NEWS_SAVED_KEY, NEWS_SEEN_KEY, FEED_KEY, "myhome.wx", "myhome.potd"]
+    [LS_KEY, NEWS_CACHE_KEY, NEWS_VOTES_KEY, NEWS_SAVED_KEY, NEWS_SEEN_KEY, NEWS_IMGPOOL_KEY, NEWS_IMGUSE_KEY, FEED_KEY, "myhome.wx", "myhome.potd"]
       .forEach(k=>{ try{ localStorage.removeItem(k); }catch(e){} });
     state = defaultState(); save(); render(); syncSettingsForm();
   }
@@ -3390,6 +3519,7 @@ $("#saveSettings").addEventListener("click",()=>{
   const prevRss = state.rss2jsonKey||"";
   state.rss2jsonKey = $("#rss2jsonKey").value.trim();
   if(prevRss !== state.rss2jsonKey){ try{ localStorage.removeItem("myhome.feeds"); }catch(e){} }   // re-fetch with the new item cap
+  state.pexelsKey = $("#pexelsKey").value.trim();   // optional Pexels key for card images
   // AI settings — if anything that affects feed content changed, drop the feed caches so they rebuild.
   // (Per-feed provider/model are mutated live; the feed cache also keys on provider+model so those self-invalidate.)
   const prevKeys=JSON.stringify(state.ai.keys||{}), prevEnabled=state.ai.enabled, prevCount=state.ai.itemsPerFeed;
