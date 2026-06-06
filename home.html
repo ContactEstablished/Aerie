@@ -534,6 +534,21 @@
   .fy-s{font-size:13px;font-weight:400;color:var(--muted);margin-top:5px;line-height:1.45;overflow-wrap:anywhere}
   /* News card: source · topic · time meta line under the summary */
   .na-meta{font-size:11px;color:var(--dim);margin-top:6px;display:flex;flex-wrap:wrap;gap:4px}
+  /* News feed cards (headline link + vote/save action row) */
+  .news-list{display:flex;flex-direction:column}
+  .news-card{border-top:1px solid color-mix(in srgb, var(--border) 70%, transparent);border-radius:10px;transition:background .12s ease}
+  .news-card:first-child{border-top:none}
+  .news-card:hover{background:rgba(255,255,255,0.035)}
+  .nc-main{display:flex;gap:12px;padding:12px 8px 6px;text-decoration:none;color:var(--text)}
+  .nc-main:hover .fy-h{color:#fff}
+  .nc-actions{display:flex;gap:6px;padding:0 8px 11px;align-items:center}
+  .nc-btn{background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--muted);
+    border-radius:8px;padding:4px 10px;font-size:13px;line-height:1.2;cursor:pointer;font-family:inherit;transition:all .12s ease}
+  .nc-btn:hover{color:var(--text);border-color:var(--border-strong);background:rgba(255,255,255,0.09)}
+  .nc-btn.on{color:#fff;background:color-mix(in srgb, var(--accent) 26%, transparent);border-color:color-mix(in srgb, var(--accent) 40%, transparent)}
+  .nc-save{margin-left:auto;font-weight:600}
+  .nc-save.on{cursor:default;opacity:.65;color:var(--accent)}
+  .nc-save[disabled]{pointer-events:none}
   /* standardized thumbnails: consistent ratio + border, dimmed until the row is hovered */
   .fy-thumb{flex:0 0 auto;width:108px;aspect-ratio:16/10;border-radius:10px;overflow:hidden;
     background:var(--bg-panel);border:1px solid var(--border);opacity:.9;transition:opacity .12s ease}
@@ -1445,7 +1460,38 @@ async function loadNewsFeed(w, body){
   }
 }
 
-// Read-only card list (vote/save buttons are added in Task 4).
+/* ---- News card actions: 👍 like · 👎 not interested · 💾 save ---- */
+function newsItemByKey(key){ const c=readNewsCache(); return c && (c.items||[]).find(i=>i.key===key); }
+function removeNewsItem(key){ const c=readNewsCache(); if(c){ c.items=(c.items||[]).filter(i=>i.key!==key); writeNewsCache(c); } }
+function reloadNewsBody(w){
+  const el=document.querySelector(`.w[data-id="${w.id}"] .w-body`); const c=readNewsCache();
+  if(el && c) renderNewsFeed(w, el, c.items, c.ts);
+}
+function refreshReadingList(){
+  const rl=state.widgets.find(x=>x.type==="readinglist");
+  const el=rl && document.querySelector(`.w[data-id="${rl.id}"] .w-body`);
+  if(el) loadWidget(rl, el);
+}
+// 👍 (dir 1) records a like and keeps the card; 👎 (dir -1) records a dislike, removes the
+// card now, and suppresses the story from future pulls. Re-clicking the active vote clears it.
+function newsVote(w, key, dir){
+  const votes=readVotes(); const cur=votes[key]&&votes[key].vote; const it=newsItemByKey(key);
+  if(cur===dir){ delete votes[key]; }
+  else { votes[key]={vote:dir, ts:Date.now(), title:it&&it.title, source:it&&it.source, topic:it&&it.topic}; }
+  writeVotes(votes);
+  if(dir===-1 && votes[key] && votes[key].vote===-1) removeNewsItem(key);
+  reloadNewsBody(w);
+}
+// 💾 copies the article to the Reading List (it stays in the feed, marked "Saved ✓").
+function newsSave(w, key){
+  const it=newsItemByKey(key); if(!it) return;
+  const saved=readSaved(); if(saved.some(s=>s.key===key)) return;
+  saved.unshift({key:it.key, title:it.title, summary:it.summary, image:it.image, link:it.link,
+                 source:it.source, topic:it.topic, savedAt:Date.now()});
+  writeSaved(saved);
+  reloadNewsBody(w); refreshReadingList();
+}
+
 function renderNewsFeed(w, body, items, ts){
   const ai = newsAIConfig(w);
   const off = w.news && parseInt(w.news.refreshMins,10)===0;
@@ -1466,18 +1512,39 @@ function renderNewsFeed(w, body, items, ts){
       <div class="keyhint" style="margin:0">Articles don't repeat for two days — new ones appear as your topics surface them. Add more topics in ⚙ Settings → News, or hit ⟳.</div></div></div>`;
     return;
   }
-  const rows = items.map(x=>`
-    <a class="fy-item" href="${esc(x.link)}" target="_blank" rel="noopener">
-      <div class="fy-text">
-        <div class="fy-h">${esc(x.title)}</div>
-        ${x.summary?`<div class="fy-s">${esc(x.summary)}</div>`:""}
-        <div class="na-meta">${[x.source, x.topic, x.when].filter(Boolean).map(esc).join(" · ")}</div>
+  const votes = readVotes();
+  const savedKeys = new Set(readSaved().map(s=>s.key));
+  const rows = items.map(x=>{
+    const up = votes[x.key] && votes[x.key].vote===1;
+    const saved = savedKeys.has(x.key);
+    return `<div class="news-card" data-key="${esc(x.key)}">
+      <a class="nc-main" href="${esc(x.link)}" target="_blank" rel="noopener">
+        <div class="fy-text">
+          <div class="fy-h">${esc(x.title)}</div>
+          ${x.summary?`<div class="fy-s">${esc(x.summary)}</div>`:""}
+          <div class="na-meta">${[x.source, x.topic, x.when].filter(Boolean).map(esc).join(" · ")}</div>
+        </div>
+        ${x.image?`<div class="fy-thumb"><img src="${esc(x.image)}" alt="" referrerpolicy="no-referrer" loading="lazy" onerror="this.closest('.fy-thumb').remove()"></div>`:""}
+      </a>
+      <div class="nc-actions">
+        <button class="nc-btn${up?" on":""}" data-act="up"   data-key="${esc(x.key)}" title="I like this">👍</button>
+        <button class="nc-btn" data-act="down" data-key="${esc(x.key)}" title="Not interested — hide and stop recommending">👎</button>
+        <button class="nc-btn nc-save${saved?" on":""}" data-act="save" data-key="${esc(x.key)}" title="Save to Reading List"${saved?" disabled":""}>${saved?"Saved ✓":"💾 Save"}</button>
       </div>
-      ${x.image?`<div class="fy-thumb"><img src="${esc(x.image)}" alt="" referrerpolicy="no-referrer" loading="lazy" onerror="this.closest('.fy-thumb').remove()"></div>`:""}
-    </a>`).join("");
+    </div>`;
+  }).join("");
   body.innerHTML = `<div class="foryou">${head}
     ${ai?"":`<div class="keyhint">Add an AI key in ⚙ Settings → AI for one-line summaries and smarter ranking.</div>`}
-    <div class="fy-list">${rows}</div></div>`;
+    <div class="fy-list news-list">${rows}</div></div>`;
+  const list = body.querySelector(".fy-list");
+  list.addEventListener("click", e=>{
+    const btn = e.target.closest(".nc-btn"); if(!btn) return;
+    e.preventDefault(); e.stopPropagation();
+    const key = btn.dataset.key;
+    if(btn.dataset.act==="up")        newsVote(w, key, 1);
+    else if(btn.dataset.act==="down") newsVote(w, key, -1);
+    else if(btn.dataset.act==="save") newsSave(w, key);
+  });
 }
 
 /* Placeholder loader — replaced by the real Reading List in Task 5. */
