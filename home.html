@@ -549,6 +549,18 @@
   .nc-save{margin-left:auto;font-weight:600}
   .nc-save.on{cursor:default;opacity:.65;color:var(--accent)}
   .nc-save[disabled]{pointer-events:none}
+  /* Reading List rows (saved articles: open in new tab / mark read) */
+  .rl-list{display:flex;flex-direction:column}
+  .rl-row{border-top:1px solid color-mix(in srgb, var(--border) 70%, transparent);border-radius:10px;transition:background .12s ease}
+  .rl-row:first-child{border-top:none}
+  .rl-row:hover{background:rgba(255,255,255,0.035)}
+  .rl-main{display:flex;gap:10px;padding:11px 8px 6px;text-decoration:none;color:var(--text)}
+  .rl-main:hover .fy-h{color:#fff}
+  .rl-text{flex:1 1 auto;min-width:0}
+  .rl-row .fy-h{font-size:14px}
+  .rl-row .fy-thumb{width:84px}
+  .rl-actions{display:flex;padding:0 8px 10px}
+  .rl-read{margin-left:auto}
   /* standardized thumbnails: consistent ratio + border, dimmed until the row is hovered */
   .fy-thumb{flex:0 0 auto;width:108px;aspect-ratio:16/10;border-radius:10px;overflow:hidden;
     background:var(--bg-panel);border:1px solid var(--border);opacity:.9;transition:opacity .12s ease}
@@ -1547,8 +1559,46 @@ function renderNewsFeed(w, body, items, ts){
   });
 }
 
-/* Placeholder loader — replaced by the real Reading List in Task 5. */
-function loadReadingList(w, body){ body.innerHTML = loadingHTML; }
+/* ---- Reading List: articles saved from the feed (open in new tab / mark read) ---- */
+function loadReadingList(w, body){ renderReadingList(body); }
+function readingMarkRead(key){ writeSaved(readSaved().filter(s=>s.key!==key)); refreshReadingList(); }
+function renderReadingList(body){
+  const saved = readSaved();
+  const head = `
+    <div class="fy-head">
+      <span class="fy-bar"></span>
+      <div class="fy-htext">
+        <div class="fy-title">Reading List</div>
+        <div class="fy-sub"><span>${saved.length} saved</span></div>
+      </div>
+    </div>`;
+  if(!saved.length){
+    body.innerHTML = `<div class="foryou">${head}
+      <div class="state" style="margin-top:10px"><div>Nothing saved yet.</div>
+      <div class="keyhint" style="margin:0">Hit 💾 on a story in your News Feed to add it here.</div></div></div>`;
+    return;
+  }
+  const rows = saved.map(x=>`
+    <div class="rl-row" data-key="${esc(x.key)}">
+      <a class="rl-main" href="${esc(x.link)}" target="_blank" rel="noopener">
+        <div class="rl-text">
+          <div class="fy-h">${esc(x.title)}</div>
+          <div class="na-meta">${[x.source, x.savedAt?("saved "+timeAgo(new Date(x.savedAt))):""].filter(Boolean).map(esc).join(" · ")}</div>
+        </div>
+        ${x.image?`<div class="fy-thumb"><img src="${esc(x.image)}" alt="" referrerpolicy="no-referrer" loading="lazy" onerror="this.closest('.fy-thumb').remove()"></div>`:""}
+      </a>
+      <div class="rl-actions">
+        <button class="nc-btn rl-read" data-act="read" data-key="${esc(x.key)}" title="Mark as read — remove from list">✓ Read</button>
+      </div>
+    </div>`).join("");
+  body.innerHTML = `<div class="foryou">${head}<div class="fy-list rl-list">${rows}</div></div>`;
+  const list = body.querySelector(".fy-list");
+  list.addEventListener("click", e=>{
+    const btn = e.target.closest('[data-act="read"]'); if(!btn) return;
+    e.preventDefault(); e.stopPropagation();
+    readingMarkRead(btn.dataset.key);
+  });
+}
 
 /* ---------- News feed ---------- */
 // Dispatcher: AI-enhanced "For You" cards if a DeepSeek key is set, else a classic list.
