@@ -602,6 +602,19 @@
   .fr-refresh label{font-size:12px;color:var(--dim);flex:0 0 auto}
   .fr-refresh .refresh{flex:0 0 auto;max-width:84px;text-align:right}
   .fr-refresh .ref-unit{font-size:12px;color:var(--dim);flex:0 0 auto}
+  /* topic pills / chits (News settings) */
+  .pillbox{display:flex;flex-wrap:wrap;gap:6px;align-items:center;
+    border:1px solid var(--border);border-radius:10px;padding:7px;background:rgba(255,255,255,0.03);min-height:40px}
+  .pill{display:inline-flex;align-items:center;gap:6px;
+    background:var(--accent-soft);color:color-mix(in srgb, var(--accent) 62%, #fff);
+    border:1px solid color-mix(in srgb, var(--accent) 32%, transparent);
+    border-radius:999px;padding:3px 6px 3px 11px;font-size:12.5px;font-weight:600;white-space:nowrap}
+  .pill-x{background:none;border:none;color:inherit;cursor:pointer;font-family:inherit;
+    font-size:12px;line-height:1;padding:2px;opacity:.7;border-radius:50%}
+  .pill-x:hover{opacity:1;background:rgba(255,255,255,0.15)}
+  .pill-input{flex:1;min-width:120px;background:transparent;border:none;outline:none;
+    color:var(--text);font-size:13px;font-family:inherit;padding:4px 2px}
+  .pill-input::placeholder{color:var(--dim)}
   /* small accent link beside a settings section heading (e.g. "get a key") */
   .seclink{font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--accent);text-decoration:none;margin-left:8px}
   .seclink:hover{text-decoration:underline}
@@ -635,7 +648,7 @@
       <h2>⚙ Settings</h2>
       <div class="tabs" id="settingsTabs">
         <button class="tab active" type="button" data-tab="wc">Weather &amp; Clock</button>
-        <button class="tab" type="button" data-tab="feeds">News Feeds</button>
+        <button class="tab" type="button" data-tab="feeds">News</button>
         <button class="tab" type="button" data-tab="photo">Photo of the Day</button>
         <button class="tab" type="button" data-tab="tasks">Tasks</button>
         <button class="tab" type="button" data-tab="colors">Colors</button>
@@ -668,22 +681,40 @@
           </div>
         </div>
 
-        <!-- News Feeds -->
+        <!-- News -->
         <div class="tabpane" data-pane="feeds">
           <div class="sec">
-            <h3>News Feeds</h3>
-            <div id="feedEditor"></div>
-            <button class="btn" id="addFeedBtn2" style="margin-top:6px">＋ Add feed</button>
-            <div class="smallnote">Add any site's RSS/Atom URL. Examples — NYT: <code>https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml</code> · Hacker News: <code>https://hnrss.org/frontpage</code> · ESPN: <code>https://www.espn.com/espn/rss/news</code></div>
+            <h3>Topics</h3>
+            <div id="newsTopics" class="pillbox"></div>
+            <div class="smallnote">Type a topic — a word or phrase — and press <b>Enter</b> to add it. Each topic is searched on Google News and the top stories across all your topics form one feed. Click <b>✕</b> on a pill to remove it.</div>
+          </div>
+          <div class="sec">
+            <h3>Feed options</h3>
+            <div class="row">
+              <label>Articles / topic</label>
+              <input class="field" id="newsItems" type="number" min="1" max="10" step="1" style="flex:0 0 auto;max-width:84px">
+            </div>
+            <div class="row">
+              <label>Refresh every</label>
+              <select class="field" id="newsRefresh">
+                <option value="0">Off</option>
+                <option value="15">15 min</option>
+                <option value="30">30 min</option>
+                <option value="60">60 min</option>
+              </select>
+            </div>
+            <div class="row fr-ai">
+              <label>AI</label>
+              <select class="field" id="newsProv"></select>
+              <select class="field" id="newsModel"></select>
+            </div>
+            <input class="field" id="newsModelCustom" placeholder="Custom model name (e.g. gpt-4o-2024-11-20)" style="display:none;width:100%;margin-top:6px">
+            <div class="smallnote">AI writes a one-line summary per article and ranks the feed using your 👍/👎 votes. Add a key under the <b>AI Settings</b> tab. Without a key the feed still shows headlines, thumbnails, and the vote/save buttons — just no summaries or ranking.</div>
           </div>
           <div class="sec">
             <h3>rss2json key (optional)<a class="seclink" id="rss2jsonLink" href="https://rss2json.com/plans" target="_blank" rel="noopener">get a key ↗</a></h3>
             <div class="row"><label>API key</label><input class="field" id="rss2jsonKey" type="password" placeholder="rss2json API key" autocomplete="off"><button class="btn danger" id="clearRss2json" type="button" style="flex:0 0 auto">Clear</button></div>
-            <div class="smallnote">Feeds load via the free <code>rss2json</code> tier, which returns ~10 items per feed. Add a paid key (<code>rss2json.com</code>) to raise that cap; leave blank to stay on the free tier.</div>
-          </div>
-          <div class="sec">
-            <h3>Show / Hide</h3>
-            <label class="chk"><input type="checkbox" data-util="news"> News feeds (all feed cards)</label>
+            <div class="smallnote">Topic searches load via the free <code>rss2json</code> tier (~10 items per request). Add a paid key (<code>rss2json.com</code>) to raise that cap; leave blank to stay on the free tier.</div>
           </div>
         </div>
 
@@ -741,7 +772,7 @@
         <div class="tabpane" data-pane="ai">
           <div class="sec">
             <h3>AI Summaries</h3>
-            <label class="chk"><input type="checkbox" id="aiEnabled"> Enhance feeds with AI — set a <b>provider &amp; model per feed</b> in the News Feeds tab</label>
+            <label class="chk"><input type="checkbox" id="aiEnabled"> Enhance the news feed with AI — set the <b>provider &amp; model</b> in the News tab</label>
             <div class="row"><label>DeepSeek key</label><input class="field" id="key_deepseek" type="password" placeholder="sk-..." autocomplete="off"><button class="btn danger" data-clearkey="deepseek" type="button" style="flex:0 0 auto">Clear</button></div>
             <div class="row"><label>OpenAI key</label><input class="field" id="key_openai" type="password" placeholder="sk-..." autocomplete="off"><button class="btn danger" data-clearkey="openai" type="button" style="flex:0 0 auto">Clear</button></div>
             <div class="row"><label>Anthropic key</label><input class="field" id="key_anthropic" type="password" placeholder="sk-ant-..." autocomplete="off"><button class="btn danger" data-clearkey="anthropic" type="button" style="flex:0 0 auto">Clear</button></div>
@@ -1283,8 +1314,12 @@ function loadReadingList(w, body){ body.innerHTML = loadingHTML; }
 // Per-feed auto-refresh: how often (minutes) each feed re-fetches; falls back to the global AI cache window.
 const feedLoadedAt = {};   // id -> last load time (runtime only; resets on page reload)
 function feedRefreshMins(w){
-  const mins = (w && w.type==="newsfeed" && w.news) ? w.news.refreshMins : (w && w.refreshMins);
-  return clamp(parseInt(mins, 10) || (state.ai.cacheMinutes||30), 1, 9999);
+  if(w && w.type==="newsfeed" && w.news){
+    const m = parseInt(w.news.refreshMins, 10);
+    if(m===0) return 525600;   // "Off" → a ~year-long window; only the ⟳ button rebuilds
+    return clamp(m || (state.ai.cacheMinutes||30), 1, 9999);
+  }
+  return clamp(parseInt(w && w.refreshMins, 10) || (state.ai.cacheMinutes||30), 1, 9999);
 }
 // One global ticker reloads each visible feed when its interval elapses (queries the DOM each tick, so add/remove just works).
 function startFeedTicker(){
@@ -2404,7 +2439,7 @@ function toggleTodoAI(w, el, body){
   if(existing){ closePopover(el, existing); return; }
   el.classList.add("cfg-open");
   const cfg = todoCfg(w);
-  cfg.ai = cfg.ai || newFeedAI();
+  cfg.ai = cfg.ai || newAIConfig();
   const pop = document.createElement("div");
   pop.className = "todo-ai";
   const keyed = AI_PROVIDERS.filter(p=>p.id!=="off" && ((state.ai.keys||{})[p.id]));
@@ -2774,12 +2809,8 @@ function revealTopLeft(){
   try{ gridScroll.scrollTo({left:0, top:0, behavior:"smooth"}); }
   catch(e){ gridScroll.scrollLeft = 0; gridScroll.scrollTop = 0; }
 }
-function newFeedAI(){ const p = firstKeyedProvider(); return {provider:p, model: DEFAULT_MODELS[p] || DEFAULT_MODELS.deepseek}; }
-function addFeed(title,url){
-  const id = "feed_"+(idSeq++)+"_"+Date.now().toString(36);
-  state.widgets.push({id, type:"feed", title:title||"News", url:url||"", pos:firstFreeSpot(4,5), refreshMins:(state.ai.cacheMinutes||30), ai:newFeedAI()});
-  save(); render(); revealTopLeft();
-}
+// Default {provider, model} for a widget's AI config — picks the first provider with a key.
+function newAIConfig(){ const p = firstKeyedProvider(); return {provider:p, model: DEFAULT_MODELS[p] || DEFAULT_MODELS.deepseek}; }
 function addClock(){
   const id = "clock_"+(idSeq++)+"_"+Date.now().toString(36);
   state.widgets.push({id, type:"clock", title:"Clock", pos:firstFreeSpot(4,2), clock:{tz:"local", seconds:false, hour24:false, analog:false, showTz:true}});
@@ -2797,7 +2828,7 @@ function addTodo(){
   save(); render(); revealTopLeft();
 }
 // Widget types that are multi-instance and toggled collectively by one checkbox.
-const COLLECTIVE = {news:"feed", clock:"clock", weather:"weather", todo:"todo"};
+const COLLECTIVE = {clock:"clock", weather:"weather", todo:"todo"};
 function showUtil(type){
   const existing = state.widgets.find(x=>x.type===type);
   if(existing){ existing.hidden=false; }
@@ -2850,7 +2881,7 @@ function syncSettingsForm(){
     if(ct) cb.checked = state.widgets.some(w=>w.type===ct && !w.hidden);
     else { const w = state.widgets.find(x=>x.type===u); cb.checked = !!(w && !w.hidden); }
   });
-  renderFeedEditor();
+  renderNewsSettings();
 }
 function renderSwatches(){
   const box = $("#swatches"); if(!box) return; box.innerHTML="";
@@ -2886,66 +2917,72 @@ function setBg(hex){               // live preview; persisted on Save
   $("#bgCustom").value = hex;
   renderBgSwatches();
 }
-function renderFeedEditor(){
-  const box = $("#feedEditor"); box.innerHTML="";
-  state.widgets.filter(w=>w.type==="feed").forEach(w=>{
-    if(!w.ai) w.ai = {provider:"off", model:DEFAULT_MODELS.deepseek};
-    const item = document.createElement("div");
-    item.className="feeditem";
-    const provOpts = AI_PROVIDERS.map(p=>`<option value="${p.id}"${w.ai.provider===p.id?" selected":""}>${p.label}</option>`).join("");
-    item.innerHTML = `
-      <div class="feedrow">
-        <input class="field t" value="${esc(w.title)}" placeholder="Name">
-        <input class="field u" value="${esc(w.url)}" placeholder="RSS / Atom URL">
-        <button class="w-btn" title="Remove feed">✕</button>
-      </div>
-      <div class="feedrow fr-ai">
-        <span class="ai-tag">AI</span>
-        <select class="field prov">${provOpts}</select>
-        <select class="field model"></select>
-      </div>
-      <input class="field model-custom" placeholder="Custom model name (e.g. gpt-4o-2024-11-20)" style="display:none;width:100%;margin-top:6px">
-      <div class="feedrow fr-refresh">
-        <label>Refresh every</label>
-        <input class="field refresh" type="number" min="1" max="9999" step="1" value="${feedRefreshMins(w)}">
-        <span class="ref-unit">min</span>
-      </div>`;
-    const t=item.querySelector(".t"), u=item.querySelector(".u"), prov=item.querySelector(".prov"), model=item.querySelector(".model"), custom=item.querySelector(".model-custom"), refresh=item.querySelector(".refresh");
-    function fillModels(){
-      const p = w.ai.provider;
-      if(p==="off"){ model.innerHTML="<option value=''>—</option>"; model.disabled=true; custom.style.display="none"; return; }
-      model.disabled=false;
-      const known = MODEL_OPTIONS[p]||[];
-      if(!w.ai.model) w.ai.model = DEFAULT_MODELS[p];
-      const isCustom = !!w.ai.model && !known.includes(w.ai.model);   // a typed-in / legacy model name
-      model.innerHTML = known.map(m=>`<option value="${esc(m)}"${m===w.ai.model?" selected":""}>${esc(m)}</option>`).join("")
-                      + `<option value="__custom__"${isCustom?" selected":""}>✎ Custom…</option>`;
-      custom.value = isCustom ? w.ai.model : "";
-      custom.style.display = isCustom ? "block" : "none";
-    }
-    t.addEventListener("input",()=>{ w.title=t.value; });
-    u.addEventListener("input",()=>{ w.url=u.value; });
-    prov.addEventListener("change",()=>{
-      w.ai.provider = prov.value;
-      if(w.ai.provider!=="off" && !(MODEL_OPTIONS[w.ai.provider]||[]).includes(w.ai.model)) w.ai.model = DEFAULT_MODELS[w.ai.provider];
-      fillModels();
+// Reusable topic pill/chit editor. `topics` is mutated in place (it's the live
+// news.topics array); `onChange` fires after every add/remove.
+function mountPillInput(box, topics, onChange){
+  function commit(val){
+    const v = (val||"").trim();
+    if(!v) return;
+    if(topics.some(t=>t.toLowerCase()===v.toLowerCase())) return;   // no case-insensitive dupes
+    topics.push(v); onChange && onChange(topics); paint(true);
+  }
+  function remove(i){ topics.splice(i,1); onChange && onChange(topics); paint(true); }
+  function paint(focus){
+    box.innerHTML = topics.map((t,i)=>`<span class="pill">${esc(t)}<button class="pill-x" type="button" data-i="${i}" title="Remove">✕</button></span>`).join("")
+                  + `<input class="pill-input" type="text" placeholder="Add a topic…" autocomplete="off">`;
+    box.querySelectorAll(".pill-x").forEach(b=>b.addEventListener("click",()=>remove(+b.dataset.i)));
+    const inp = box.querySelector(".pill-input");
+    inp.addEventListener("keydown",e=>{
+      if(e.key==="Enter" || e.key===","){ e.preventDefault(); commit(inp.value); inp.value=""; }
+      else if(e.key==="Backspace" && !inp.value && topics.length){ remove(topics.length-1); }
     });
-    model.addEventListener("change",()=>{
-      if(model.value==="__custom__"){ custom.style.display="block"; w.ai.model = custom.value.trim(); custom.focus(); }
-      else { custom.style.display="none"; w.ai.model = model.value; }
-    });
-    custom.addEventListener("input",()=>{ w.ai.model = custom.value.trim(); });
-    // refresh interval: accept only 1–9999 minutes; clamp live, normalize the field on blur
-    // (a bare number clamps into range; an empty/non-numeric field falls back to the default)
-    refresh.addEventListener("input",()=>{ const v=parseInt(refresh.value,10); if(!isNaN(v)) w.refreshMins=clamp(v,1,9999); });
-    refresh.addEventListener("change",()=>{ const v=parseInt(refresh.value,10); w.refreshMins=isNaN(v)?(state.ai.cacheMinutes||30):clamp(v,1,9999); refresh.value=w.refreshMins; });
-    item.querySelector(".w-btn").addEventListener("click",()=>{
-      state.widgets = state.widgets.filter(x=>x!==w);
-      renderFeedEditor();
-    });
-    fillModels();
-    box.appendChild(item);
-  });
+    inp.addEventListener("blur",()=>{ if(inp.value.trim()){ commit(inp.value); inp.value=""; } });
+    if(focus) inp.focus();
+  }
+  paint(false);
+}
+
+// AI provider + model picker bound to a {provider, model} object (the news feed's news.ai).
+// Mirrors the per-feed picker: curated models per provider + a ✎ Custom… free-text option.
+function mountNewsProvider(ai){
+  ai.provider ??= "deepseek"; ai.model ??= DEFAULT_MODELS.deepseek;
+  const prov=$("#newsProv"), model=$("#newsModel"), custom=$("#newsModelCustom");
+  if(!prov||!model||!custom) return;
+  prov.innerHTML = AI_PROVIDERS.map(p=>`<option value="${p.id}"${ai.provider===p.id?" selected":""}>${p.label}</option>`).join("");
+  function fillModels(){
+    const p = ai.provider;
+    if(p==="off"){ model.innerHTML="<option value=''>—</option>"; model.disabled=true; custom.style.display="none"; return; }
+    model.disabled=false;
+    const known = MODEL_OPTIONS[p]||[];
+    if(!ai.model) ai.model = DEFAULT_MODELS[p];
+    const isCustom = !!ai.model && !known.includes(ai.model);
+    model.innerHTML = known.map(m=>`<option value="${esc(m)}"${m===ai.model?" selected":""}>${esc(m)}</option>`).join("")
+                    + `<option value="__custom__"${isCustom?" selected":""}>✎ Custom…</option>`;
+    custom.value = isCustom ? ai.model : "";
+    custom.style.display = isCustom ? "block" : "none";
+  }
+  prov.onchange=()=>{ ai.provider=prov.value; if(ai.provider!=="off" && !(MODEL_OPTIONS[ai.provider]||[]).includes(ai.model)) ai.model=DEFAULT_MODELS[ai.provider]; fillModels(); };
+  model.onchange=()=>{ if(model.value==="__custom__"){ custom.style.display="block"; ai.model=custom.value.trim(); custom.focus(); } else { custom.style.display="none"; ai.model=model.value; } };
+  custom.oninput=()=>{ ai.model=custom.value.trim(); };
+  fillModels();
+}
+
+// Populate the News settings tab from the (singleton) News Feed widget's config.
+function renderNewsSettings(){
+  const w = state.widgets.find(x=>x.type==="newsfeed"); if(!w) return;
+  w.news ??= {topics:[], itemsPerTopic:5, refreshMins:30, ai:{provider:"deepseek", model:DEFAULT_MODELS.deepseek}};
+  const n = w.news; n.topics ??= []; n.ai ??= {provider:"deepseek", model:DEFAULT_MODELS.deepseek};
+  const tbox = $("#newsTopics"); if(tbox) mountPillInput(tbox, n.topics, ()=>{});
+  const items = $("#newsItems");
+  if(items){ items.value = n.itemsPerTopic||5; items.onchange=()=>{ n.itemsPerTopic = clamp(parseInt(items.value,10)||5,1,10); items.value=n.itemsPerTopic; }; }
+  const ref = $("#newsRefresh");
+  if(ref){
+    const cur = String(n.refreshMins ?? 30);
+    if(![...ref.options].some(o=>o.value===cur)){ const o=document.createElement("option"); o.value=cur; o.textContent=(cur==="0"?"Off":cur+" min"); ref.appendChild(o); }
+    ref.value = cur;
+    ref.onchange=()=>{ n.refreshMins = parseInt(ref.value,10)||0; };
+  }
+  mountNewsProvider(n.ai);
 }
 
 $("#settingsBtn").addEventListener("click",openSettings);
@@ -2975,10 +3012,6 @@ $("#artSrc").addEventListener("change", updateApodKeyUI);
 $("#apodKey").addEventListener("input", updateApodKeyUI);
 $("#clearApodKey").addEventListener("click",()=>{ $("#apodKey").value=""; updateApodKeyUI(); });   // applied on Save
 $("#closeSettings").addEventListener("click",()=>{ state=load(); applyTheme(); closeSettings(); render(); });
-$("#addFeedBtn2").addEventListener("click",()=>{
-  state.widgets.push({id:"feed_"+(idSeq++)+"_"+Date.now().toString(36), type:"feed", title:"New feed", url:"", pos:firstFreeSpot(4,5), refreshMins:(state.ai.cacheMinutes||30), ai:newFeedAI()});
-  renderFeedEditor();
-});
 $("#addWeatherBtn").addEventListener("click",()=>{ addWeather(); syncSettingsForm(); });
 $("#addClockBtn").addEventListener("click",()=>{ addClock(); syncSettingsForm(); });
 $("#addTodoBtn").addEventListener("click",()=>{ addTodo(); syncSettingsForm(); });
