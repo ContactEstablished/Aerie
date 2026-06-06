@@ -848,12 +848,15 @@ function defaultState(){
     proxy:PROXIES[0],
     rss2jsonKey:"",
     widgets:[
-      {id:"cnn",   type:"feed", title:"CNN",        url:"http://rss.cnn.com/rss/cnn_topstories.rss",      pos:{c:0,r:0,w:4,h:6}, z:1, collapsed:false, refreshMins:30, ai:{provider:"deepseek", model:"deepseek-chat"}},
-      {id:"bbc",   type:"feed", title:"BBC",        url:"http://feeds.bbci.co.uk/news/world/rss.xml",      pos:{c:4,r:0,w:4,h:6}, z:2, collapsed:false, refreshMins:30, ai:{provider:"deepseek", model:"deepseek-chat"}},
-      {id:"verge", type:"feed", title:"The Verge",  url:"https://www.theverge.com/rss/index.xml",          pos:{c:0,r:6,w:8,h:3}, z:3, collapsed:false, refreshMins:30, ai:{provider:"deepseek", model:"deepseek-chat"}},
-      {id:"weather",type:"weather", title:"Weather", pos:{c:8,r:0,w:4,h:3}, z:4, collapsed:false, weather:{mode:"ip", city:""}},
-      {id:"clock",  type:"clock",   title:"Clock",   pos:{c:8,r:3,w:4,h:2}, z:5, collapsed:false, clock:{tz:"local", seconds:false, hour24:false, analog:false, showTz:false}},
-      {id:"art",    type:"art",     title:"Photo of the Day", pos:{c:8,r:5,w:4,h:4}, z:6, collapsed:false}
+      {id:"newsfeed",    type:"newsfeed",    title:"News Feed",
+        pos:{c:0,r:0,w:5,h:9}, z:1, collapsed:false,
+        news:{ topics:["Technology","World news","Business"], itemsPerTopic:5, refreshMins:30,
+               ai:{provider:"deepseek", model:"deepseek-chat"} }},
+      {id:"readinglist", type:"readinglist", title:"Reading List",
+        pos:{c:5,r:0,w:3,h:9}, z:2, collapsed:false},
+      {id:"weather",type:"weather", title:"Weather", pos:{c:8,r:0,w:4,h:3}, z:3, collapsed:false, weather:{mode:"ip", city:""}},
+      {id:"clock",  type:"clock",   title:"Clock",   pos:{c:8,r:3,w:4,h:2}, z:4, collapsed:false, clock:{tz:"local", seconds:false, hour24:false, analog:false, showTz:false}},
+      {id:"art",    type:"art",     title:"Photo of the Day", pos:{c:8,r:5,w:4,h:4}, z:5, collapsed:false}
     ]
   };
 }
@@ -959,6 +962,28 @@ function migrate(s){
     (s.widgets||[]).forEach(w=>{ if(w.type==="todo" && w.todo && Array.isArray(w.todo.items)) w.todo.items.forEach(it=>{ it.createdAt ??= now; }); });
     s.__v = 15;
   }
+  if(s.__v < 16){
+    // News overhaul: drop the per-source feed widgets in favour of one topic-driven
+    // News Feed + one Reading List. Seed the News Feed's AI provider/model from any
+    // existing feed so a user who'd configured a key keeps their choice.
+    const feeds  = (s.widgets||[]).filter(w=>w.type==="feed");
+    const seedAi = (feeds.find(f=>f.ai && f.ai.provider && f.ai.provider!=="off")||{}).ai
+                || {provider:"deepseek", model:"deepseek-chat"};
+    let z = s.zCounter || 10;
+    s.widgets = (s.widgets||[]).filter(w=>w.type!=="feed");
+    if(!s.widgets.some(w=>w.type==="newsfeed")){
+      s.widgets.unshift(
+        {id:"newsfeed", type:"newsfeed", title:"News Feed",
+          pos:{c:0,r:0,w:5,h:9}, z:++z, collapsed:false,
+          news:{ topics:["Technology","World news","Business"], itemsPerTopic:5,
+                 refreshMins:(s.ai && s.ai.cacheMinutes) || 30, ai:seedAi }},
+        {id:"readinglist", type:"readinglist", title:"Reading List",
+          pos:{c:5,r:0,w:3,h:9}, z:++z, collapsed:false}
+      );
+    }
+    s.zCounter = Math.max(s.zCounter||10, z);
+    s.__v = 16;
+  }
 }
 function save(){ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
 
@@ -1039,7 +1064,7 @@ function applyPos(el,w){
 // Raise a card to the top of the stacking order (persisted via the rising counter).
 function bringToFront(w){ w.z = ++state.zCounter; }
 
-const ICONS = {feed:"📰", weather:"⛅", art:"📷", clock:"🕑", search:"🔎", todo:"✅"};
+const ICONS = {feed:"📰", weather:"⛅", art:"📷", clock:"🕑", search:"🔎", todo:"✅", newsfeed:"📰", readinglist:"📖"};
 
 function render(){
   applyCellSize();          // re-fit px cells to the viewport (handles scrollbar show/hide)
@@ -1054,9 +1079,12 @@ function render(){
     applyPos(el,w);
 
     const removable = (w.type==="feed" || w.type==="clock" || w.type==="weather" || w.type==="todo");
+    // News Feed + Reading List are singletons with no Widgets toggle to restore them, so they
+    // get no close button at all (minimize only) — hiding one would strand it.
+    const closable = (w.type!=="newsfeed" && w.type!=="readinglist");
     const closeIcon = removable ? "✕" : "–";
     const closeTitle = w.type==="feed" ? "Remove feed" : w.type==="clock" ? "Remove clock" : w.type==="weather" ? "Remove weather" : w.type==="todo" ? "Remove list" : "Hide widget";
-    const refreshBtn = (w.type==="feed"||w.type==="art"||w.type==="weather")
+    const refreshBtn = (w.type==="feed"||w.type==="art"||w.type==="weather"||w.type==="newsfeed")
       ? `<button class="w-btn" data-act="refresh" title="Refresh">⟳</button>` : "";
     const cfgTitle = {clock:"Clock options", search:"Search options", weather:"Weather location", todo:"List options"};
     const configBtn = (w.type==="clock" || w.type==="search" || w.type==="weather" || w.type==="todo")
@@ -1074,7 +1102,7 @@ function render(){
         <div class="w-btns">
           ${refreshBtn}${artBtns}${aiBtn}${configBtn}
           <button class="w-btn" data-act="minimize" title="${w.collapsed?"Expand":"Minimize"}">${w.collapsed?"▢":"—"}</button>
-          <button class="w-btn" data-act="close" title="${closeTitle}">${closeIcon}</button>
+          ${closable?`<button class="w-btn" data-act="close" title="${closeTitle}">${closeIcon}</button>`:""}
         </div>
       </div>
       <div class="w-body"></div>
@@ -1084,7 +1112,8 @@ function render(){
     makeDraggable(el,w);
     makeResizable(el,w);
 
-    el.querySelector('[data-act="close"]').addEventListener("click",()=>{
+    const closeB = el.querySelector('[data-act="close"]');
+    if(closeB) closeB.addEventListener("click",()=>{
       if(removable){ state.widgets = state.widgets.filter(x=>x!==w); }
       else { w.hidden = true; }
       save(); render(); syncSettingsForm();
@@ -1097,6 +1126,7 @@ function render(){
     const rb = el.querySelector('[data-act="refresh"]');
     if(rb) rb.addEventListener("click",()=>{
       if(w.type==="feed") clearFeedCache(w.id);   // ⟳ forces a fresh fetch + re-summarize
+      if(w.type==="newsfeed") clearNewsCache();   // ⟳ rebuilds the topic feed from Google News
       if(w.type==="art")  clearArtCache();        // ⟳ gets a new photo even within the same day
       loadWidget(w, el.querySelector(".w-body"));
     });
@@ -1240,20 +1270,29 @@ function loadWidget(w, body){
   if(w.type==="clock")   return loadClock(w, body);
   if(w.type==="search")  return loadSearch(w, body);
   if(w.type==="todo")    return loadTodo(w, body);
+  if(w.type==="newsfeed")    return loadNewsFeed(w, body);
+  if(w.type==="readinglist") return loadReadingList(w, body);
 }
+
+/* Placeholder loaders — replaced by the real renderers in later News tasks. */
+function loadNewsFeed(w, body){ body.innerHTML = loadingHTML; }
+function loadReadingList(w, body){ body.innerHTML = loadingHTML; }
 
 /* ---------- News feed ---------- */
 // Dispatcher: AI-enhanced "For You" cards if a DeepSeek key is set, else a classic list.
 // Per-feed auto-refresh: how often (minutes) each feed re-fetches; falls back to the global AI cache window.
 const feedLoadedAt = {};   // id -> last load time (runtime only; resets on page reload)
-function feedRefreshMins(w){ return clamp(parseInt(w && w.refreshMins, 10) || (state.ai.cacheMinutes||30), 1, 9999); }
+function feedRefreshMins(w){
+  const mins = (w && w.type==="newsfeed" && w.news) ? w.news.refreshMins : (w && w.refreshMins);
+  return clamp(parseInt(mins, 10) || (state.ai.cacheMinutes||30), 1, 9999);
+}
 // One global ticker reloads each visible feed when its interval elapses (queries the DOM each tick, so add/remove just works).
 function startFeedTicker(){
   if(window.__feedTicker) return;
   window.__feedTicker = setInterval(()=>{
     document.querySelectorAll(".w[data-id]").forEach(el=>{
       const w = state.widgets.find(x=>x.id===el.dataset.id);
-      if(!w || w.type!=="feed" || w.hidden) return;
+      if(!w || w.hidden || (w.type!=="feed" && w.type!=="newsfeed")) return;
       if(Date.now() >= (feedLoadedAt[w.id]||0) + feedRefreshMins(w)*60000){
         const body = el.querySelector(".w-body");
         if(body) loadWidget(w, body);
@@ -1525,6 +1564,35 @@ function readFeeds(){ try{ return JSON.parse(localStorage.getItem(FEED_KEY))||{}
 function readFeedCache(id){ return readFeeds()[id] || null; }
 function writeFeedCache(id,obj){ const all=readFeeds(); all[id]=obj; try{ localStorage.setItem(FEED_KEY,JSON.stringify(all)); }catch(e){} }
 function clearFeedCache(id){ const all=readFeeds(); delete all[id]; try{ localStorage.setItem(FEED_KEY,JSON.stringify(all)); }catch(e){} }
+
+/* ---------- News Feed stores (topic search + votes + reading list + 48h dedupe) ---------- */
+const NEWS_CACHE_KEY="myhome.news.cache",   // {ts, sig, items:[...]} — one built feed
+      NEWS_VOTES_KEY="myhome.news.votes",   // {key:{vote:1|-1, ts, title, source, topic}}
+      NEWS_SAVED_KEY="myhome.news.saved",   // [{key,title,summary,image,link,source,topic,savedAt}]
+      NEWS_SEEN_KEY ="myhome.news.seen";    // {key:ts} — articles shown recently (pruned at 48h)
+const NEWS_SEEN_MS = 48*3600*1000;          // don't re-grab an article for 2 days
+function readJSON(k, fallback){ try{ const v=JSON.parse(localStorage.getItem(k)); return (v==null)?fallback:v; }catch(e){ return fallback; } }
+function writeJSON(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function readVotes(){ return readJSON(NEWS_VOTES_KEY, {}); }
+function writeVotes(v){ writeJSON(NEWS_VOTES_KEY, v); }
+function readSaved(){ const v=readJSON(NEWS_SAVED_KEY, []); return Array.isArray(v)?v:[]; }
+function writeSaved(v){ writeJSON(NEWS_SAVED_KEY, v); }
+function readSeen(){ return readJSON(NEWS_SEEN_KEY, {}); }
+function writeSeen(v){ writeJSON(NEWS_SEEN_KEY, v); }
+function readNewsCache(){ return readJSON(NEWS_CACHE_KEY, null); }
+function writeNewsCache(obj){ writeJSON(NEWS_CACHE_KEY, obj); }
+function clearNewsCache(){ try{ localStorage.removeItem(NEWS_CACHE_KEY); }catch(e){} }
+// Google News titles read "Headline - Source"; the RSS also carries a <source>. Strip the
+// trailing " - Source" for the displayed title and derive a fallback source from it.
+function sourceFromTitle(t){ const m=String(t||"").match(/\s+-\s+([^-]+)$/); return m?m[1].trim():""; }
+function cleanNewsTitle(t){ return String(t||"").replace(/\s+-\s+[^-]+$/,"").trim() || String(t||"").trim(); }
+// Stable identity for dedupe/votes: title (sans source) + source domain. Google News links are
+// unstable redirect URLs, so we key on text rather than the href.
+function newsKey(it){
+  const t = cleanNewsTitle(it&&it.title).toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+  const src = String((it&&it.source)||"").toLowerCase().replace(/[^a-z0-9]+/g,"");
+  return t + "|" + src;
+}
 
 // run async fn over arr with limited concurrency
 async function mapLimit(arr, limit, fn){
