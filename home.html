@@ -862,7 +862,7 @@
 /* ============================================================
    Personal Home Page — single file, no build step.
    Data sources (all free, no API key):
-     • Weather  : open-meteo.com  (location via ipwho.is / GPS / city geocode)
+     • Weather  : open-meteo.com  (location via geojs.io / GPS / city geocode)
      • Art      : Art Institute of Chicago & The Met
      • News     : any RSS/Atom feed via a public CORS proxy
    Layout is a snap-to-grid you can drag & resize. Saved to localStorage.
@@ -2157,10 +2157,13 @@ async function resolveLocation(L){
     return {lat:r.latitude, lon:r.longitude, name:[r.name,r.admin1,r.country_code].filter(Boolean).join(", ")};
   }
   // default: IP-based — try several providers; any one can be down or rate-limited
+  // geojs.io first — it's the most reliable free/no-key endpoint. ipwho.is is kept as a
+  // last-resort fallback because it has been intermittently returning 403 to unauthenticated
+  // traffic; a failed fetch still logs a (harmless) console error even though we catch it.
   const providers = [
-    {u:"https://ipwho.is/",                    pick:j=>(j&&j.success!==false&&j.latitude!=null)?{lat:j.latitude,      lon:j.longitude,      name:[j.city,j.region].filter(Boolean).join(", ")}:null},
     {u:"https://get.geojs.io/v1/ip/geo.json",  pick:j=>(j&&j.latitude!=null)               ?{lat:+j.latitude,     lon:+j.longitude,     name:[j.city,j.region].filter(Boolean).join(", ")}:null},
-    {u:"https://ipapi.co/json/",               pick:j=>(j&&j.latitude!=null)               ?{lat:j.latitude,      lon:j.longitude,      name:[j.city,j.region_code].filter(Boolean).join(", ")}:null}
+    {u:"https://ipapi.co/json/",               pick:j=>(j&&j.latitude!=null)               ?{lat:j.latitude,      lon:j.longitude,      name:[j.city,j.region_code].filter(Boolean).join(", ")}:null},
+    {u:"https://ipwho.is/",                    pick:j=>(j&&j.success!==false&&j.latitude!=null)?{lat:j.latitude,      lon:j.longitude,      name:[j.city,j.region].filter(Boolean).join(", ")}:null}
   ];
   for(const p of providers){
     try{ const r = p.pick(await fetchJSON(p.u, 8000)); if(r) return r; }catch(e){}
