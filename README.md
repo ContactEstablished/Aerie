@@ -84,7 +84,7 @@ Everything is **configurable from a Settings panel** and **persists in your brow
 - Powered by **[Open‑Meteo](https://open-meteo.com/)** — free, no API key.
 - **Multiple weather cards** — add a card per city. Use **＋ Add weather** in Settings, then set each card's location independently from its **⚙** button.
 - Each card resolves its **location** one of three ways:
-  - **Auto (by IP)** — default; no permission prompt. Tries `ipwho.is`, then `geojs.io`, then `ipapi.co` for resilience.
+  - **Auto (by IP)** — default; no permission prompt. Tries `geojs.io`, then `ipapi.co`, then `ipwho.is` for resilience.
   - **City** — type a city; geocoded via Open‑Meteo's geocoding API. City cards auto‑title to the city name.
   - **Precise (GPS)** — uses the browser's geolocation (asks permission).
 - Shows current temperature, condition (with emoji), "feels like," daily high/low, humidity, and wind.
@@ -272,7 +272,7 @@ All free and key‑less, **except the AI providers** (optional, your key):
 | Purpose | Service | Key required |
 | --- | --- | --- |
 | Weather | [Open‑Meteo](https://open-meteo.com/) (forecast + geocoding) | No |
-| IP geolocation | `ipwho.is` → `geojs.io` → `ipapi.co` | No |
+| IP geolocation | `geojs.io` → `ipapi.co` → `ipwho.is` | No |
 | Reverse geocoding | [BigDataCloud](https://www.bigdatacloud.com/) | No |
 | News search | [Google News](https://news.google.com/) RSS search (per topic) | No |
 | RSS → JSON (primary) | [rss2json](https://rss2json.com/) | No |
